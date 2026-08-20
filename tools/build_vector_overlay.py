@@ -76,7 +76,8 @@ TAKINGS = [
 
 LANDMARKS = [
     {"name": "DeFremery Park", "kind": "park", "eras": ALL,
-     "poly": [[[-122.2898, 37.8100], [-122.2866, 37.8107], [-122.2872, 37.8129], [-122.2903, 37.8122], [-122.2898, 37.8100]]]},
+     # corners read off the georeferenced 1949 quad (grid-tilted rectangle)
+     "poly": [[[-122.2897, 37.8110], [-122.2864, 37.8103], [-122.2859, 37.8123], [-122.2892, 37.8130], [-122.2897, 37.8110]]]},
     {"name": "Prescott School", "kind": "school", "eras": ALL, "pt": [-122.3005, 37.8078]},
     {"name": "McClymonds High Sch", "kind": "school", "eras": ALL, "pt": [-122.2820, 37.8085]},
     {"name": "Southern Pacific yards", "kind": "rail", "eras": ALL, "pt": [-122.3010, 37.7985]},

@@ -146,7 +146,7 @@ export function MapView({
       >
         {showPhoto && (
           <img
-            className="map-photo"
+            className={cx("map-photo", showVector && "ghost")}
             src={BASEMAPS[era].url}
             alt={`Historical map of West Oakland, ${era} era (${BASEMAPS[era].credit})`}
             draggable={false}
@@ -175,7 +175,7 @@ export function MapView({
             </div>
           </>
         )}
-        {showVector && <VectorOverlay era={era} muted={showPhoto} />}
+        {showVector && <VectorOverlay era={era} />}
         {pins.map((p) => {
           const { x, y } = project(p.lat, p.lng);
           return (

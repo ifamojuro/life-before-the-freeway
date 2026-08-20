@@ -37,13 +37,13 @@ function toPath(coords: number[][]): string {
     .join("");
 }
 
-const LINE_STYLE: Record<string, { stroke: string; width: number; opacity?: number; dash?: string }> = {
-  street: { stroke: "#0d1b2a", width: 1, opacity: 0.45 },
-  major: { stroke: "#0d1b2a", width: 2, opacity: 0.6 },
-  freeway: { stroke: "#b4231f", width: 3.5, opacity: 0.8 },
+const LINE_STYLE: Record<string, { stroke: string; width: number; opacity?: number; halo?: number }> = {
+  street: { stroke: "#0d1b2a", width: 1.1, opacity: 0.7 },
+  major: { stroke: "#0d1b2a", width: 2.2, opacity: 0.85, halo: 4 },
+  freeway: { stroke: "#b4231f", width: 3.5, opacity: 0.9, halo: 6 },
 };
 
-export function VectorOverlay({ era, muted }: { era: EraKey; muted?: boolean }) {
+export function VectorOverlay({ era }: { era: EraKey }) {
   const [features, setFeatures] = useState<Feature[]>([]);
   useEffect(() => { void loadFeatures().then(setFeatures); }, []);
 
@@ -69,7 +69,7 @@ export function VectorOverlay({ era, muted }: { era: EraKey; muted?: boolean }) 
   if (!active.length) return null;
   return (
     <>
-      <svg className="vec-layer" viewBox="0 0 100 100" preserveAspectRatio="none" style={muted ? { opacity: 0.55 } : undefined} aria-hidden>
+      <svg className="vec-layer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
         <defs>
           <pattern id="takings-hatch" width="1.2" height="1.2" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
             <rect width="1.2" height="1.2" fill="rgba(180,35,31,0.07)" />
@@ -92,18 +92,21 @@ export function VectorOverlay({ era, muted }: { era: EraKey; muted?: boolean }) 
           if (f.geometry.type !== "LineString") return null;
           const s = LINE_STYLE[p.kind];
           if (!s) return null;
+          const d = toPath(f.geometry.coordinates as number[][]);
           return (
-            <path
-              key={i}
-              d={toPath(f.geometry.coordinates as number[][])}
-              fill="none"
-              stroke={s.stroke}
-              strokeWidth={s.width}
-              strokeOpacity={s.opacity}
-              strokeDasharray={p.erased ? "6 4" : undefined}
-              strokeLinecap="round"
-              vectorEffect="non-scaling-stroke"
-            />
+            <g key={i}>
+              {s.halo && <path d={d} fill="none" stroke="#fbfaf5" strokeWidth={s.halo} strokeOpacity={0.65} strokeLinecap="round" vectorEffect="non-scaling-stroke" />}
+              <path
+                d={d}
+                fill="none"
+                stroke={s.stroke}
+                strokeWidth={s.width}
+                strokeOpacity={s.opacity}
+                strokeDasharray={p.erased ? "6 4" : undefined}
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            </g>
           );
         })}
       </svg>
