@@ -9,7 +9,7 @@
  * shape. Falls back to the original stylized grid if an image fails to load.
  * Optional tap-to-place mode is used by the contributor + moderation flows.
  */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { Component, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { BASEMAPS, clampPct, groundAspect, project, unproject } from "../lib/geo";
 import { MapLibreView } from "./MapLibreView";
 import { VectorOverlay } from "./VectorOverlay";
@@ -70,20 +70,35 @@ export function MapView(props: Props) {
   const [failed, setFailed] = useState(false);
   if (!failed && props.photo !== false) {
     return (
-      <MapLibreView
-        era={props.era ?? "1965"}
-        pins={props.pins}
-        onPinClick={props.onPinClick}
-        onTap={props.onTap}
-        className={props.className}
-        zoomable={props.zoomable ?? true}
-        scaleLabel={props.scaleLabel}
-        baseToggle={props.baseToggle}
-        onFail={() => setFailed(true)}
-      />
+      <MapCrashGuard fallback={<PlaneMap {...props} />}>
+        <MapLibreView
+          era={props.era ?? "1965"}
+          pins={props.pins}
+          onPinClick={props.onPinClick}
+          onTap={props.onTap}
+          className={props.className}
+          zoomable={props.zoomable ?? true}
+          scaleLabel={props.scaleLabel}
+          baseToggle={props.baseToggle}
+          onFail={() => setFailed(true)}
+        />
+      </MapCrashGuard>
     );
   }
   return <PlaneMap {...props} />;
+}
+
+class MapCrashGuard extends Component<{ fallback: ReactNode; children: ReactNode }, { crashed: boolean }> {
+  state = { crashed: false };
+  static getDerivedStateFromError() {
+    return { crashed: true };
+  }
+  componentDidCatch(err: Error) {
+    console.warn("Map renderer crashed, using offline fallback:", err.message);
+  }
+  render() {
+    return this.state.crashed ? this.props.fallback : this.props.children;
+  }
 }
 
 function PlaneMap({
