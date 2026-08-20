@@ -58,7 +58,7 @@ export const BASEMAPS: Record<string, { url: string; credit: string }> = {
 
 /** Era key -> era aerial photography (built by tools/build_aerials.py). */
 export const AERIALS: Record<string, { url: string; credit: string }> = {
-  "1950": { url: "/aerials/1950.jpg", credit: "Aerial 1947 · UCSB Library collection" },
+  "1950": { url: "/aerials/1950.jpg", credit: "Aerial Aug 1939 · UCSB Library collection" },
   "1965": { url: "/aerials/1965.jpg", credit: "Aerial May 1965 · UCSB Library collection" },
   "1985": { url: "/aerials/1985.jpg", credit: "Aerial 1980 · UCSB Library collection" },
 };

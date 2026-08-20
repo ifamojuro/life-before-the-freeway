@@ -232,7 +232,7 @@ export function MapLibreView({ era, pins = [], onPinClick, onTap, className, zoo
           className="map-basetoggle"
           onClick={() => setMode((m) => (m === "streets" ? "aerial" : m === "aerial" ? "scan" : m === "scan" ? "both" : "streets"))}
         >
-          Base: {mode === "streets" ? "streets" : mode === "aerial" ? `aerial ${era === "1950" ? "1947" : era === "1965" ? "1965" : "1980"}` : mode === "scan" ? "USGS scan" : "streets + scan"}
+          Base: {mode === "streets" ? "streets" : mode === "aerial" ? `aerial ${era === "1950" ? "1939" : era === "1965" ? "1965" : "1980"}` : mode === "scan" ? "USGS scan" : "streets + scan"}
         </button>
       )}
     </div>

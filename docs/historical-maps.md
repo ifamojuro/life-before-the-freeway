@@ -205,14 +205,27 @@ free from `mil.library.ucsb.edu/ap_images/`):
 
 | Era | Flight / frames | Date · scale |
 |---|---|---|
-| ~1950 | GS_CP 1-17 | 1947 · 1:23,600 |
+| ~1950 | C_5750 289-103 | **Aug 2, 1939** · 1:20,000 (single frame covers the full extent) |
 | 1965 | CAS_65_130 15-116/117/118/133/134 (5-frame mosaic) | **May 18, 1965** · 1:12,000 |
 | 1985 | GS_VEZR 1-25 | 1980 · 1:24,000 (corridor cleared / construction) |
+
+The GS_CP 1946/47 flight was tried first for the "before" era, but its
+FrameFinder centerpoints proved off by 1–2 km in inconsistent directions
+(frame 1-17 is actually centered over Alameda) — which is what made the first
+"1947" basemap look zoomed-out and mis-oriented. The 1939 frame calibrates
+cleanly and covers the whole extent alone.
 
 `tools/build_aerials.py` georeferences each frame by center + scale +
 rotation + shift (tuned by QA against the digitized street vectors; residuals
 ~5–15 m), masks the film collar, normalizes exposure, composites the 1965
 mosaic pick-best (no ghosting), and writes `frontend/public/aerials/{era}.jpg`.
+
+**Accuracy note:** frames are georeferenced by a global center/scale/rotation
+fit, QA'd at anchors to ~5–40 m — but single-frame aerials carry lens/relief
+distortion, so local drift up to ~100 m exists away from the QA anchors (e.g.
+the 1965 mosaic drifts near DeFremery). The proper fix is a per-frame
+multi-GCP affine fit (QGIS georeferencer, or extending build_aerials.py) — a
+good volunteer pass.
 
 **TODOs:** WAC_84C 4-32 (1984, post-opening I-980) is cached but its NASA
 flightline is rotated off-north — needs proper GCP georeferencing before it

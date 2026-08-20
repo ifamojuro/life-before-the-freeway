@@ -8,7 +8,10 @@ MAP_BOUNDS in EPSG:4326, and written to frontend/public/aerials/{era}.jpg.
 The 1965 era is a 3-frame feathered mosaic.
 
 Flights used:
-  ~1950  GS_CP  frame 1-17   (1947, 1:23,600)
+  ~1950  C_5750 frame 289-103 (Aug 2, 1939, 1:20,000) — the GS_CP 1946/47
+         flight was tried first but its FrameFinder centerpoints are off by
+         1-2 km in inconsistent directions; the 1939 frame covers the whole
+         bbox alone and calibrates cleanly
   1965   CAS_65_130 frames 15-117 / 15-133 / 15-134  (May 18 1965, 1:12,000)
   1985   GS_VEZR frame 1-25  (1980, 1:24,000 — I-980 corridor cleared/under
          construction; WAC_84C 4-32 (1984) is a better date but its flightline
@@ -36,7 +39,7 @@ M_LAT = 110574.0
 
 BASE = "https://mil.library.ucsb.edu/ap_images"
 FRAMES = {
-    "gs-cp_1-17":        {"url": f"{BASE}/gs-cp/gs-cp_1-17.tif",               "ctr": (-122.2930, 37.8021), "m": 1.0016, "rot": 0.0,  "dx": -24, "dy": 10},
+    "c-5750_289-103":    {"url": f"{BASE}/c-5750/c-5750_289-103.tif",           "ctr": (-122.2843, 37.8024), "m": 0.8488, "rot": 0.0,  "dx": -35, "dy": 12},
     "cas-65-130_15-117": {"url": f"{BASE}/cas-65-130/cas-65-130_15-117.tif",   "ctr": (-122.2971, 37.8083), "m": 0.4909, "rot": 0.35, "dx": -3,  "dy": 0},
     "cas-65-130_15-133": {"url": f"{BASE}/cas-65-130/cas-65-130_15-133.tif",   "ctr": (-122.2736, 37.8006), "m": 0.4909, "rot": 0.35, "dx": 0,   "dy": 0},
     "cas-65-130_15-134": {"url": f"{BASE}/cas-65-130/cas-65-130_15-134.tif",   "ctr": (-122.2727, 37.8101), "m": 0.4909, "rot": 0.35, "dx": 0,   "dy": 0},
@@ -45,7 +48,7 @@ FRAMES = {
     "gs-vezr_1-25":      {"url": f"{BASE}/gs-vezr/gs-vezr_1-25.tif",           "ctr": (-122.2951, 37.8118), "m": 1.7288, "rot": 0.0,  "dx": 0,   "dy": 0},
 }
 ERAS = {
-    "1950": ["gs-cp_1-17"],
+    "1950": ["c-5750_289-103"],
     "1965": ["cas-65-130_15-117", "cas-65-130_15-133", "cas-65-130_15-134", "cas-65-130_15-116", "cas-65-130_15-118"],
     "1985": ["gs-vezr_1-25"],
 }
