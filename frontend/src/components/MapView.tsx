@@ -11,6 +11,7 @@
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { BASEMAPS, clampPct, groundAspect, project, unproject } from "../lib/geo";
+import { MapLibreView } from "./MapLibreView";
 import { VectorOverlay } from "./VectorOverlay";
 import type { EraKey } from "../lib/types";
 import { cx } from "../lib/util";
@@ -65,7 +66,27 @@ const TAKINGS = [
 
 const ASPECT = groundAspect();
 
-export function MapView({
+export function MapView(props: Props) {
+  const [failed, setFailed] = useState(false);
+  if (!failed && props.photo !== false) {
+    return (
+      <MapLibreView
+        era={props.era ?? "1965"}
+        pins={props.pins}
+        onPinClick={props.onPinClick}
+        onTap={props.onTap}
+        className={props.className}
+        zoomable={props.zoomable ?? true}
+        scaleLabel={props.scaleLabel}
+        baseToggle={props.baseToggle}
+        onFail={() => setFailed(true)}
+      />
+    );
+  }
+  return <PlaneMap {...props} />;
+}
+
+function PlaneMap({
   era = "1965", pins = [], onPinClick, onTap, className, showRoadNames = true, zoomable = false, scaleLabel, gridSize = 46, photo = true, vector = true, baseToggle = false, children,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);

@@ -169,3 +169,25 @@ cycles the modes.
 
 Correcting this file against the scans is also the on-ramp to contributing the
 result to **OpenHistoricalMap** so the digitization outlives this app.
+
+### v1.1 — high-fidelity base (MapLibre GL + OpenFreeMap)
+
+The map now renders with the familiar digital-map cartography (green parks,
+blue water, grey buildings, labeled streets): **MapLibre GL** with
+**OpenFreeMap "liberty" vector tiles** (openfreemap.org — free, no API key,
+© OpenStreetMap contributors). Era correctness on top:
+
+- Modern motorways + route shields are hidden from the base style everywhere;
+  freeways draw era-correct from `features.geojson` (none in 1950, the Cypress
+  structure in 1965/85, I-980 only in 1985) in standard motorway orange.
+- 1965 takings corridors and hand-traced erased streets render above the base.
+- The USGS scan remains available as a raster layer — base chip cycles
+  **streets / streets + scan / scan**.
+- If tiles are unreachable (offline demo), `MapView` falls back to the previous
+  self-contained plane renderer automatically.
+
+Known anachronisms of using modern tiles under historical eras: building
+footprints, park shapes, and some street labels are present-day (e.g.
+"Mandela Parkway" labels the 1950 Cypress St alignment). The era freeway/
+takings layers correct the big story; label-level fixes are part of the
+digitization correction pass.
