@@ -58,6 +58,7 @@ export function MapLibreView({ era, pins = [], onPinClick, onTap, className, zoo
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markers = useRef<maplibregl.Marker[]>([]);
   const [ready, setReady] = useState(false);
+  const baseSymbols = useRef<string[]>([]);
   const [mode, setMode] = useState<BaseMode>("streets");
   const eraRef = useRef(era);
   const tapRef = useRef(onTap);
@@ -103,9 +104,16 @@ export function MapLibreView({ era, pins = [], onPinClick, onTap, className, zoo
         }
       }
 
-      // 2. era imagery as optional raster layers, inserted BELOW the first
-      // symbol layer so street/place labels float above (hybrid look)
-      const firstSymbol = (map.getStyle().layers ?? []).find((l) => l.type === "symbol")?.id;
+      // 2. era imagery as optional raster layers. NOTE: the first symbol layer
+      // in the style is the water label, which sits BEFORE the road layers —
+      // inserting there would draw modern roads over the photos. Insert above
+      // all geometry instead: before the first street-name label layer.
+      const layers = map.getStyle().layers ?? [];
+      baseSymbols.current = layers.filter((l) => l.type === "symbol").map((l) => l.id);
+      const firstSymbol = (
+        layers.find((l) => l.type === "symbol" && (l as { "source-layer"?: string })["source-layer"] === "transportation_name") ??
+        layers.find((l) => l.type === "symbol")
+      )?.id;
       map.addSource("usgs-scan", { type: "image", url: BASEMAPS[eraRef.current].url, coordinates: SCAN_COORDS });
       map.addLayer({ id: "usgs-scan", type: "raster", source: "usgs-scan", paint: { "raster-opacity": 0, "raster-fade-duration": 150 } }, firstSymbol);
       map.addSource("era-aerial", { type: "image", url: AERIALS[eraRef.current].url, coordinates: SCAN_COORDS });
@@ -173,6 +181,17 @@ export function MapLibreView({ era, pins = [], onPinClick, onTap, className, zoo
     if (!map || !ready) return;
     map.setPaintProperty("usgs-scan", "raster-opacity", mode === "scan" ? 1 : mode === "both" ? 0.5 : 0);
     map.setPaintProperty("era-aerial", "raster-opacity", mode === "aerial" ? 1 : 0);
+    // photo modes are for reading the imagery itself: no modern labels/POI
+    // clutter, no vector annotations — just the photo, the pins, the credit.
+    const photoMode = mode === "aerial" || mode === "scan";
+    for (const id of baseSymbols.current) {
+      const lid = id.toLowerCase();
+      if (lid.includes("motorway") || lid.includes("shield")) continue; // stay hidden always
+      map.setLayoutProperty(id, "visibility", photoMode ? "none" : "visible");
+    }
+    for (const id of ["era-takings", "era-takings-line", "era-erased", "era-freeway-casing", "era-freeway"]) {
+      map.setLayoutProperty(id, "visibility", photoMode ? "none" : "visible");
+    }
   }, [mode, ready]);
 
   // ---- pins ----
