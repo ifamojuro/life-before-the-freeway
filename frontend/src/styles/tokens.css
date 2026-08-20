@@ -216,7 +216,7 @@ video {
 .map-surface.tappable { cursor: crosshair; }
 .map-surface { touch-action: none; }
 .map-fill { position: absolute; inset: 0; }
-.mlwrap { position: relative; overflow: hidden; background: var(--mist); }
+.mlwrap { overflow: hidden; background: var(--mist); }
 .ml-canvas { position: absolute; inset: 0; }
 .pin.ml { position: absolute; } /* maplibre positions the marker element via inline transform */
 .mlwrap .maplibregl-ctrl-bottom-right { z-index: 4; }
