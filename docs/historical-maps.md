@@ -191,3 +191,31 @@ footprints, park shapes, and some street labels are present-day (e.g.
 "Mandela Parkway" labels the 1950 Cypress St alignment). The era freeway/
 takings layers correct the big story; label-level fixes are part of the
 digitization correction pass.
+
+### v1.2 — era aerial photography (UCSB Library)
+
+Each era now has a **photographic basemap from the era itself** — the
+"satellite view" of its decade — selectable from the base chip
+(streets → aerial → USGS scan → streets + scan). Imagery renders below the
+vector style's labels, giving the familiar hybrid look.
+
+**Frames** (discovered via UCSB FrameFinder's public feature service —
+`services1.arcgis.com/.../All_Flights_Merge/FeatureServer/0` — and downloaded
+free from `mil.library.ucsb.edu/ap_images/`):
+
+| Era | Flight / frames | Date · scale |
+|---|---|---|
+| ~1950 | GS_CP 1-17 | 1947 · 1:23,600 |
+| 1965 | CAS_65_130 15-116/117/118/133/134 (5-frame mosaic) | **May 18, 1965** · 1:12,000 |
+| 1985 | GS_VEZR 1-25 | 1980 · 1:24,000 (corridor cleared / construction) |
+
+`tools/build_aerials.py` georeferences each frame by center + scale +
+rotation + shift (tuned by QA against the digitized street vectors; residuals
+~5–15 m), masks the film collar, normalizes exposure, composites the 1965
+mosaic pick-best (no ghosting), and writes `frontend/public/aerials/{era}.jpg`.
+
+**TODOs:** WAC_84C 4-32 (1984, post-opening I-980) is cached but its NASA
+flightline is rotated off-north — needs proper GCP georeferencing before it
+can replace the 1980 frame; a couple of small no-coverage slivers at the 1965
+mosaic's north edge; confirm UCSB's reuse terms for public launch (collection
+is served as free downloads; attribution shown on-map).

@@ -15,7 +15,7 @@
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
-import { BASEMAPS, MAP_BOUNDS } from "../lib/geo";
+import { AERIALS, BASEMAPS, MAP_BOUNDS } from "../lib/geo";
 import type { EraKey } from "../lib/types";
 import { cx } from "../lib/util";
 import type { MapPin } from "./MapView";
@@ -25,7 +25,7 @@ const B = MAP_BOUNDS;
 const SCAN_COORDS: [[number, number], [number, number], [number, number], [number, number]] =
   [[B.west, B.north], [B.east, B.north], [B.east, B.south], [B.west, B.south]];
 
-export type BaseMode = "both" | "vector" | "scan";
+export type BaseMode = "streets" | "aerial" | "scan" | "both";
 
 interface Props {
   era: EraKey;
@@ -58,7 +58,7 @@ export function MapLibreView({ era, pins = [], onPinClick, onTap, className, zoo
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markers = useRef<maplibregl.Marker[]>([]);
   const [ready, setReady] = useState(false);
-  const [mode, setMode] = useState<BaseMode>("vector");
+  const [mode, setMode] = useState<BaseMode>("streets");
   const eraRef = useRef(era);
   const tapRef = useRef(onTap);
   tapRef.current = onTap;
@@ -103,9 +103,13 @@ export function MapLibreView({ era, pins = [], onPinClick, onTap, className, zoo
         }
       }
 
-      // 2. USGS scan as an optional raster layer (above base, below overlays)
+      // 2. era imagery as optional raster layers, inserted BELOW the first
+      // symbol layer so street/place labels float above (hybrid look)
+      const firstSymbol = (map.getStyle().layers ?? []).find((l) => l.type === "symbol")?.id;
       map.addSource("usgs-scan", { type: "image", url: BASEMAPS[eraRef.current].url, coordinates: SCAN_COORDS });
-      map.addLayer({ id: "usgs-scan", type: "raster", source: "usgs-scan", paint: { "raster-opacity": 0, "raster-fade-duration": 150 } });
+      map.addLayer({ id: "usgs-scan", type: "raster", source: "usgs-scan", paint: { "raster-opacity": 0, "raster-fade-duration": 150 } }, firstSymbol);
+      map.addSource("era-aerial", { type: "image", url: AERIALS[eraRef.current].url, coordinates: SCAN_COORDS });
+      map.addLayer({ id: "era-aerial", type: "raster", source: "era-aerial", paint: { "raster-opacity": 0, "raster-fade-duration": 150 } }, firstSymbol);
 
       // 3. era features
       map.addSource("era", { type: "geojson", data: "/overlays/features.geojson" });
@@ -155,6 +159,7 @@ export function MapLibreView({ era, pins = [], onPinClick, onTap, className, zoo
     const map = mapRef.current;
     if (!map || !ready) return;
     (map.getSource("usgs-scan") as maplibregl.ImageSource | undefined)?.updateImage({ url: BASEMAPS[era].url, coordinates: SCAN_COORDS });
+    (map.getSource("era-aerial") as maplibregl.ImageSource | undefined)?.updateImage({ url: AERIALS[era].url, coordinates: SCAN_COORDS });
     map.setFilter("era-takings", kindFilter("takings", era));
     map.setFilter("era-takings-line", kindFilter("takings", era));
     map.setFilter("era-erased", erasedFilter(era));
@@ -162,11 +167,12 @@ export function MapLibreView({ era, pins = [], onPinClick, onTap, className, zoo
     map.setFilter("era-freeway", kindFilter("freeway", era));
   }, [era, ready]);
 
-  // ---- base mode (streets / +scan / scan) ----
+  // ---- base mode (streets / aerial / scan / streets+scan) ----
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
     map.setPaintProperty("usgs-scan", "raster-opacity", mode === "scan" ? 1 : mode === "both" ? 0.5 : 0);
+    map.setPaintProperty("era-aerial", "raster-opacity", mode === "aerial" ? 1 : 0);
   }, [mode, ready]);
 
   // ---- pins ----
@@ -197,11 +203,17 @@ export function MapLibreView({ era, pins = [], onPinClick, onTap, className, zoo
   return (
     <div className={cx("mlwrap", className)}>
       <div ref={el} className="ml-canvas" role={onTap ? "button" : undefined} aria-label={onTap ? "Tap the map to place a pin" : "Map of West Oakland"} />
-      {mode !== "vector" && <div className="map-attrib ml">{BASEMAPS[era].credit} · public domain</div>}
+      {mode !== "streets" && (
+        <div className="map-attrib ml">{mode === "aerial" ? AERIALS[era].credit : `${BASEMAPS[era].credit} · public domain`}</div>
+      )}
       {scaleLabel && <div className="map-scale">{scaleLabel}</div>}
       {baseToggle && (
-        <button type="button" className="map-basetoggle" onClick={() => setMode((m) => (m === "vector" ? "both" : m === "both" ? "scan" : "vector"))}>
-          Base: {mode === "vector" ? "streets" : mode === "both" ? "streets + scan" : "scan"}
+        <button
+          type="button"
+          className="map-basetoggle"
+          onClick={() => setMode((m) => (m === "streets" ? "aerial" : m === "aerial" ? "scan" : m === "scan" ? "both" : "streets"))}
+        >
+          Base: {mode === "streets" ? "streets" : mode === "aerial" ? `aerial ${era === "1950" ? "1947" : era === "1965" ? "1965" : "1980"}` : mode === "scan" ? "USGS scan" : "streets + scan"}
         </button>
       )}
     </div>

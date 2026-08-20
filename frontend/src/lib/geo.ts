@@ -55,3 +55,10 @@ export const BASEMAPS: Record<string, { url: string; credit: string }> = {
   "1965": { url: "/basemaps/1965.jpg", credit: "USGS 1959 (photorev.) · Oakland West quad" },
   "1985": { url: "/basemaps/1985.jpg", credit: "USGS 1993 · Oakland West quad" },
 };
+
+/** Era key -> era aerial photography (built by tools/build_aerials.py). */
+export const AERIALS: Record<string, { url: string; credit: string }> = {
+  "1950": { url: "/aerials/1950.jpg", credit: "Aerial 1947 · UCSB Library collection" },
+  "1965": { url: "/aerials/1965.jpg", credit: "Aerial May 1965 · UCSB Library collection" },
+  "1985": { url: "/aerials/1985.jpg", credit: "Aerial 1980 · UCSB Library collection" },
+};
