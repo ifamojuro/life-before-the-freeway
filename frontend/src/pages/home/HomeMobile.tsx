@@ -84,6 +84,7 @@ export function HomeMobile({ era, setEra, pins, error }: ReturnType<typeof useHo
       <div className="m1-map" ref={mapRef}>
         <MapView
           className="map-fill"
+          baseToggle
           era={era}
           pins={pinsToMap(pins, peekPin)}
           onPinClick={(id) => setPeekPin(peekPin === id ? null : Number(id))}

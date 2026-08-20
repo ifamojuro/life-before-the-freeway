@@ -30,7 +30,7 @@ export function HomeDesktop({ era, setEra, pins, error }: ReturnType<typeof useH
       <AppHeader />
       <div className="s1-body">
         <div className="s1-map">
-          <MapView className="map-fill" era={era} pins={pinsToMap(pins, activeId)} onPinClick={(id) => nav(`/story/${id}`)} zoomable scaleLabel="West Oakland · 7th & Chestnut" />
+          <MapView className="map-fill" baseToggle era={era} pins={pinsToMap(pins, activeId)} onPinClick={(id) => nav(`/story/${id}`)} zoomable scaleLabel="West Oakland · 7th & Chestnut" />
           <EraControlCard value={era} onChange={setEra} />
           {error && <div className="err-note" style={{ position: "absolute", left: 16, top: 200, zIndex: 4 }}>Couldn't load pins: {error}. Is the API running on :8000?</div>}
           {!error && pins.length === 0 && (

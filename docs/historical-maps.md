@@ -132,3 +132,40 @@ sample archive; real submissions get moderator-placed pins anyway. The 1965
 slot uses a photorevised printing whose exact revision year should be read off
 the map collar in topoView before public launch (it's cited on-screen as
 "USGS 1959 (photorev.)").
+
+---
+
+## v1 digitized vector layer (branch: `digitized-maps-v1`)
+
+A first pass at fully **digital** (vector) era maps, layered over — or replacing —
+the scans. On the home map a **"Base: scan + vectors / vectors / scan"** chip
+cycles the modes.
+
+**How it was made** (`tools/build_vector_overlay.py` → `frontend/public/overlays/features.geojson`, ~1,450 features):
+
+- **Skeleton from modern OSM** (Overpass pull, © OpenStreetMap contributors,
+  ODbL): most of the 1949 grid survives north of 7th St, so today's centerlines
+  are correct geometry for all three eras.
+- **Era logic per feature**: `Grove Shafter Freeway` (I-980) → 1985 only;
+  Nimitz/Cypress structure → 1965 + 1985; `Mandela Parkway` is re-issued as
+  1950 "Cypress Street" (its pre-freeway identity); unnamed motorway ramps near
+  the 980 corridor → 1985 only.
+- **Hand-added erased streets** (dashed): South Prescott segments wiped out by
+  the postal facility era, positioned from the georeferenced 1949 USGS quad.
+- **Hand-authored polygons**: 1965 takings corridors (Cypress + Grove-Shafter
+  rights-of-way, hatched red) and DeFremery Park; a few landmark labels.
+- Rendered by `frontend/src/components/VectorOverlay.tsx` as SVG on the same
+  projected plane as the pins — crisp at any zoom, era-filtered at runtime.
+
+**Known v1 gaps (the volunteer correction pass, ~1–2 days in QGIS/geojson.io):**
+
+- Modern-only roads leak into 1950/1965 (Frontage Rd, some Grand Ave/Mandela
+  geometry, post-1985 realignments) — need `eras` trimmed per feature.
+- Erased-street coverage is minimal (5 hand segments); the full South Prescott
+  + 980-corridor grids should be traced from the 1949 scan.
+- Street-name labels aren't rendered yet (only landmarks/takings).
+- Attribution requirement: any public deployment must credit
+  "© OpenStreetMap contributors" (ODbL) for the street geometry.
+
+Correcting this file against the scans is also the on-ramp to contributing the
+result to **OpenHistoricalMap** so the digitization outlives this app.

@@ -11,6 +11,7 @@
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { BASEMAPS, clampPct, groundAspect, project, unproject } from "../lib/geo";
+import { VectorOverlay } from "./VectorOverlay";
 import type { EraKey } from "../lib/types";
 import { cx } from "../lib/util";
 
@@ -38,6 +39,10 @@ interface Props {
   gridSize?: number;
   /** Render the historical basemap (default). false = always stylized. */
   photo?: boolean;
+  /** Render the digitized vector layer (default). */
+  vector?: boolean;
+  /** Show the scan/vector base-mode toggle chip. */
+  baseToggle?: boolean;
   children?: ReactNode;
 }
 
@@ -61,7 +66,7 @@ const TAKINGS = [
 const ASPECT = groundAspect();
 
 export function MapView({
-  era = "1965", pins = [], onPinClick, onTap, className, showRoadNames = true, zoomable = false, scaleLabel, gridSize = 46, photo = true, children,
+  era = "1965", pins = [], onPinClick, onTap, className, showRoadNames = true, zoomable = false, scaleLabel, gridSize = 46, photo = true, vector = true, baseToggle = false, children,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const planeRef = useRef<HTMLDivElement>(null);
@@ -69,6 +74,7 @@ export function MapView({
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 }); // px offset of plane center from container center
   const [photoOk, setPhotoOk] = useState(true);
+  const [baseMode, setBaseMode] = useState<"both" | "vector" | "scan">("both");
   const drag = useRef<{ x0: number; y0: number; px: number; py: number; moved: boolean } | null>(null);
 
   useLayoutEffect(() => {
@@ -94,7 +100,8 @@ export function MapView({
   });
   useEffect(() => { setPan((p) => clampPan(p)); /* eslint-disable-next-line */ }, [plane.w, plane.h, box.w, box.h]);
 
-  const showPhoto = photo && photoOk && !!BASEMAPS[era];
+  const showPhoto = photo && photoOk && !!BASEMAPS[era] && baseMode !== "vector";
+  const showVector = vector && baseMode !== "scan";
 
   const onDown = (e: PointerEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest(".pin, .map-overlay-ctrl, .map-zoom, .m1-era")) return;
@@ -134,7 +141,7 @@ export function MapView({
     >
       <div
         ref={planeRef}
-        className="map-plane"
+        className={cx("map-plane", !showPhoto && vector && baseMode === "vector" && "vec-ground")}
         style={{ width: plane.w, height: plane.h, left: (box.w - plane.w) / 2 + pan.x, top: (box.h - plane.h) / 2 + pan.y }}
       >
         {showPhoto && (
@@ -168,6 +175,7 @@ export function MapView({
             </div>
           </>
         )}
+        {showVector && <VectorOverlay era={era} muted={showPhoto} />}
         {pins.map((p) => {
           const { x, y } = project(p.lat, p.lng);
           return (
@@ -187,7 +195,23 @@ export function MapView({
         })}
       </div>
       {children}
-      {showPhoto && <div className="map-attrib">{BASEMAPS[era].credit} · public domain</div>}
+      {(showPhoto || showVector) && (
+        <div className="map-attrib">
+          {showPhoto ? `${BASEMAPS[era].credit} · public domain` : "streets © OpenStreetMap contributors · USGS"}
+        </div>
+      )}
+      {baseToggle && photo && photoOk && (
+        <button
+          type="button"
+          className="map-basetoggle"
+          onClick={(e) => {
+            e.stopPropagation();
+            setBaseMode((m) => (m === "both" ? "vector" : m === "vector" ? "scan" : "both"));
+          }}
+        >
+          Base: {baseMode === "both" ? "scan + vectors" : baseMode === "vector" ? "vectors" : "scan"}
+        </button>
+      )}
       {scaleLabel && <div className="map-scale">{scaleLabel}</div>}
       {zoomable && (
         <div className="map-zoom">
