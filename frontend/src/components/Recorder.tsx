@@ -68,6 +68,10 @@ export function useRecorder() {
     rec.ondataavailable = (ev) => { if (ev.data.size) chunks.current.push(ev.data); };
     rec.onstop = () => {
       const blob = new Blob(chunks.current, { type: rec.mimeType || "video/webm" });
+      // Detach the live stream from the preview element before switching to
+      // playback: `srcObject` takes precedence over `src`, and if React reuses
+      // the DOM node the (now stopped) stream would block the recorded clip.
+      if (videoRef.current) videoRef.current.srcObject = null;
       const durationS = Math.min(MAX_SECONDS, (Date.now() - startedAt.current) / 1000);
       setRecording({ blob, url: URL.createObjectURL(blob), durationS, mimeType: blob.type });
       setState("done");
@@ -115,9 +119,9 @@ export function RecorderView({ rec, compact }: { rec: ReturnType<typeof useRecor
   return (
     <div className="rec-frame">
       {state === "done" && recording ? (
-        <video src={recording.url} controls playsInline className="nomirror" />
+        <video key="playback" src={recording.url} controls playsInline className="nomirror" />
       ) : (
-        <video ref={videoRef} autoPlay playsInline muted className={cx(facing === "environment" && "nomirror")} style={{ display: state === "idle" ? "none" : undefined }} />
+        <video key="preview" ref={videoRef} autoPlay playsInline muted className={cx(facing === "environment" && "nomirror")} style={{ display: state === "idle" ? "none" : undefined }} />
       )}
       {state === "idle" && !error && <div className="selfie">front camera<br />starting…</div>}
       {error && <div className="rec-err">{error}</div>}
