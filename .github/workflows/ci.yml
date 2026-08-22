@@ -42,5 +42,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      # Vitest (jsdom) unit/component tests — see frontend/src/test/setup.ts.
+      - run: npm test
       # `tsc -b && vite build` — the README's gate for the frontend.
       - run: npm run build
