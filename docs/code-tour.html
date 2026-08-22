@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code Tour — Life Before the Freeway</title>
+<style>
+  :root {
+    --bg: #fbf8f2; --ink: #1f2328; --muted: #5b6772; --line: #e4ddd0;
+    --accent: #0f7b6c; --accent-soft: #e3f1ee; --warn: #b4231f; --warn-soft: #f9e7e6;
+    --code-bg: #f1ede4; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 Georgia, "Iowan Old Style", serif; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 32px 24px 96px; }
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 16px; margin-bottom: 28px; }
+  header h1 { margin: 0 0 4px; font-size: 2rem; letter-spacing: -0.01em; }
+  header p { margin: 0; color: var(--muted); }
+  h2 { font-size: 1.35rem; margin: 44px 0 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+  h3 { font-size: 1.05rem; margin: 24px 0 8px; }
+  p, li { max-width: 72ch; }
+  code { font-family: var(--mono); font-size: 0.88em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--code-bg); padding: 12px 14px; border-radius: 6px; overflow-x: auto; font-family: var(--mono); font-size: 0.85rem; line-height: 1.45; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; margin: 12px 0; }
+  th, td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  th { font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  .toc { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 14px 20px; columns: 2; column-gap: 32px; font-size: 0.95rem; }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc li { break-inside: avoid; }
+  a { color: var(--accent); }
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 14px 0; }
+  .callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+  .callout strong { display: block; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+  .tree { font-family: var(--mono); font-size: 0.84rem; line-height: 1.5; white-space: pre; background: var(--code-bg); padding: 14px; border-radius: 6px; overflow-x: auto; }
+  .tree i { color: var(--muted); font-style: normal; }
+  .flow { display: grid; gap: 8px; margin: 14px 0; }
+  .flow div { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; font-size: 0.93rem; }
+  .flow div b { color: var(--accent); font-family: var(--mono); font-size: 0.82rem; font-weight: 600; display: block; }
+  footer { margin-top: 56px; color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 12px; }
+  @media (max-width: 640px) { .toc { columns: 1; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Code Tour: Life Before the Freeway</h1>
+  <p>For an engineer who knows <em>what</em> the app does and is opening the repo for the first time. Branch: <code>main</code>.</p>
+</header>
+
+<nav class="toc">
+<ol>
+  <li><a href="#shape">The shape of the repo</a></li>
+  <li><a href="#run">Run it in 2 minutes</a></li>
+  <li><a href="#backend">Backend walkthrough</a></li>
+  <li><a href="#data">Data model &amp; the publish rule</a></li>
+  <li><a href="#frontend">Frontend walkthrough</a></li>
+  <li><a href="#map">The map</a></li>
+  <li><a href="#flows">Three end-to-end flows</a></li>
+  <li><a href="#tools">Offline tools &amp; generated assets</a></li>
+  <li><a href="#gotchas">Gotchas &amp; conventions</a></li>
+  <li><a href="#where">"Where do I change X?"</a></li>
+</ol>
+</nav>
+
+<h2 id="shape">1. The shape of the repo</h2>
+<p>Two independent apps in one repo, plus a <code>tools/</code> script that generates the static basemap images. No monorepo tooling — you <code>cd</code> into each side.</p>
+<div class="tree">impl/
+├── backend/                 <i>FastAPI + SQLAlchemy + SQLite (~1,750 lines)</i>
+│   ├── app/
+│   │   ├── main.py          <i>app factory, lifespan (create tables + seed), /uploads static mount</i>
+│   │   ├── config.py        <i>env vars + the canonical ERAS list</i>
+│   │   ├── db.py            <i>engine, SessionLocal, get_db()</i>
+│   │   ├── auth.py          <i>bearer-token staff auth (salted SHA-256 — not prod-grade)</i>
+│   │   ├── models.py        <i>8 ORM tables</i>
+│   │   ├── schemas.py       <i>Pydantic in/out shapes (mirrored by frontend/src/lib/types.ts)</i>
+│   │   ├── seed.py          <i>sample archive + staff accounts, runs on every startup (idempotent)</i>
+│   │   ├── routers/         <i>public.py · submissions.py · admin.py</i>
+│   │   └── services/        <i>rag.py · transcription.py · places.py</i>
+│   ├── tests/               <i>9 pytest tests via TestClient; conftest points at a temp SQLite</i>
+│   └── Makefile             <i>make dev / test / reset-db</i>
+├── frontend/                <i>React 18 + TS + Vite, react-router v6 — no map library (~4,200 lines)</i>
+│   ├── public/basemaps/{1950,1965,1985}.jpg   <i>USGS topo scans (generated by tools/)</i>
+│   └── src/
+│       ├── App.tsx          <i>routes; everything but Home is lazy()</i>
+│       ├── lib/             <i>api.ts · types.ts · geo.ts · device.tsx · util.ts</i>
+│       ├── components/      <i>MapView · ChatPanel · Recorder · UploadPicker · EraControl …</i>
+│       ├── pages/           <i>home/ · story/ · contribute/ · admin/ · info/</i>
+│       └── styles/          <i>plain CSS, tokens.css holds the design system</i>
+├── tools/build_basemaps.py  <i>GeoTIFF → warped JPG per era</i>
+└── docs/historical-maps.md  <i>map source research + the implementation note</i></div>
+
+<div class="callout"><strong>Mental model</strong>
+The backend is a thin CRUD + moderation API with two "smart" services (RAG chat, transcription/place-extraction) that both have deterministic offline modes. The frontend is a conventional SPA — React Router + <code>fetch</code>, no state library, no SSR. The map is a self-contained component with zero external dependencies.</div>
+
+<h2 id="run">2. Run it in 2 minutes</h2>
+<pre><code># terminal 1 — API on :8000 (creates .venv, seeds lbtf.db on first start)
+cd backend &amp;&amp; make dev
+
+# terminal 2 — web on :5173 (proxies /api and /uploads → :8000)
+cd frontend &amp;&amp; npm install &amp;&amp; npm run dev</code></pre>
+<ul>
+  <li>Public: <code>http://localhost:5173</code>. Admin: <code>/admin/login</code> — <code>randolph@lbtf.org</code> / <code>admin</code> (super-admin); <code>maya@</code>, <code>jordan@</code> are moderators.</li>
+  <li>Force a layout: <code>?layout=mobile</code> or <code>?layout=desktop</code> (sticks for the session via <code>sessionStorage</code>).</li>
+  <li>Tests: <code>cd backend &amp;&amp; make test</code>. Frontend has no tests; <code>npm run build</code> is the typecheck gate (<code>tsc -b &amp;&amp; vite build</code>).</li>
+  <li>Wipe state: <code>make reset-db</code> deletes <code>lbtf.db</code> + <code>uploads/</code>; the seed re-runs on next boot. <strong>Seed data changes only show up after a reset.</strong></li>
+  <li>The whole thing runs offline: no map tiles, no API keys. Set <code>ANTHROPIC_API_KEY</code> only if you want Claude-composed chat answers.</li>
+</ul>
+
+<h2 id="backend">3. Backend walkthrough</h2>
+
+<h3>Startup: <code>app/main.py</code></h3>
+<p>Lifespan handler does <code>Base.metadata.create_all()</code> then <code>seed(db)</code>. There are no migrations — adding a column to an existing <code>lbtf.db</code> means <code>make reset-db</code>. Three routers are included, plus a <code>StaticFiles</code> mount at <code>/uploads</code> for raw video.</p>
+
+<h3>Routers (all under <code>/api</code>)</h3>
+<table>
+<tr><th>File</th><th>Prefix</th><th>Auth</th><th>What lives there</th></tr>
+<tr><td><code>routers/public.py</code></td><td><code>/api</code></td><td>none</td><td><code>GET /eras</code>, <code>GET /locations[?era=]</code> (pins — only locations with ≥1 published story), <code>GET /locations/{id}</code> (stories + comments), <code>POST /locations/{id}/comments</code>, <code>GET /prompts</code>, <code>GET /prompts/random</code>, <code>POST /chat</code></td></tr>
+<tr><td><code>routers/submissions.py</code></td><td><code>/api/submissions</code></td><td>none</td><td><code>POST /upload</code> (multipart; streams to disk with a 250 MB cap, then <em>synchronously</em> transcribes + extracts places, returns an <code>Upload</code> row), <code>POST ""</code> (turns an upload + contributor form into a <code>pending</code> Submission)</td></tr>
+<tr><td><code>routers/admin.py</code></td><td><code>/api/admin</code></td><td><code>current_staff</code> bearer</td><td>login/logout/me, queue list + detail, <code>PUT …/associations</code>, <code>POST …/approve</code>, <code>POST …/reject</code>, <code>POST /field-capture</code> (publishes directly), published list + unpublish, audit, staff list, gazetteer (<code>/locations</code>)</td></tr>
+</table>
+
+<h3>Auth: <code>app/auth.py</code></h3>
+<p>Login issues a random token stored <em>on the <code>Staff</code> row</em> (one active session per staff member). <code>current_staff</code> is a FastAPI dependency reading <code>Authorization: Bearer …</code>. <code>require_super_admin</code> exists but is barely used yet. Password hashing is salted SHA-256 — the file itself says swap for bcrypt/argon2 before production.</p>
+
+<h3>Services</h3>
+<ul>
+  <li><code>services/rag.py</code> — <code>answer(db, question, history)</code> → <code>(text, passages, mode)</code>. <code>retrieve()</code> is a hand-rolled BM25 over <em>every published Story</em> (transcript + caption + location name), recomputed per request, with prefix soft-matching. Then either <code>_compose_with_claude</code> (if <code>ANTHROPIC_API_KEY</code> and <code>LBTF_USE_CLAUDE≠0</code>) or <code>_compose_extractive</code>. Both are constrained to retrieved passages; the router de-dups citations by story.</li>
+  <li><code>services/transcription.py</code> — <code>transcribe(path)</code> → <code>Transcript(text, segments, flagged_terms, duration_s)</code>. Backend chosen by <code>LBTF_TRANSCRIBER</code>: <code>mock</code> (deterministic canned transcript — what tests and demos use) or <code>whisper</code>. <code>flag_terms()</code> scans segments for a word list and records timestamps.</li>
+  <li><code>services/places.py</code> — <code>extract_places(db, transcript)</code>: substring match against every <code>Location</code> name/alias/cross_street (confidence 0.9, carries lat/lng + <code>location_id</code>), then a regex for "X and Y" cross streets (confidence 0.6, no coordinates — the contributor has to drop a pin).</li>
+</ul>
+
+<h2 id="data">4. Data model &amp; the publish rule</h2>
+<p>Eight tables in <code>models.py</code>. The important thing is the distinction between <strong>intake</strong> objects and <strong>published</strong> objects:</p>
+<table>
+<tr><th>Table</th><th>Role</th><th>Notes</th></tr>
+<tr><td><code>Upload</code></td><td>intake</td><td>A transcribed video not yet attached to anything. Created by <code>/submissions/upload</code>.</td></tr>
+<tr><td><code>Submission</code></td><td>intake</td><td>Upload + contributor info + their self-tagged <code>places</code>/<code>eras</code>. <code>status</code>: pending → approved | rejected. <code>associations</code> (JSON) are the <em>reviewer's</em> time-span → location tags. Lots of denormalised copies of Upload fields.</td></tr>
+<tr><td><code>Location</code></td><td>published</td><td>The gazetteer. Real WGS84 lat/lng, <code>eras</code> list, <code>aliases</code> for place extraction. A pin on the map = a Location with ≥1 Story.</td></tr>
+<tr><td><code>Story</code></td><td>published</td><td>One "perspective": a clip (optionally a <code>start_s..end_s</code> span of it) attached to one Location with one <code>era</code>. <code>source</code>: public | field | backfill.</td></tr>
+<tr><td><code>Comment</code>, <code>Prompt</code>, <code>Staff</code>, <code>AuditEntry</code></td><td>—</td><td>Self-explanatory. Every moderation action writes an <code>AuditEntry</code>.</td></tr>
+</table>
+
+<div class="callout"><strong>The publish rule — <code>admin.py::_publish()</code></strong>
+Approving a submission creates <strong>one Story per reviewer association</strong> (span → location → era). If the reviewer tagged nothing, it falls back to one whole-video Story per <em>contributor</em>-tagged place. Zero mappable targets → 400. <code>_resolve_location()</code> either reuses an existing Location by id or creates a new one from name + lat/lng, so moderators grow the gazetteer implicitly. Field capture (<code>/field-capture</code>) calls the same <code>_publish</code> with <code>source="field"</code> and skips the queue.</div>
+
+<p>JSON columns are used liberally (<code>eras</code>, <code>places</code>, <code>segments</code>, <code>associations</code>, <code>flagged_terms</code>). Their shapes are documented only in <code>schemas.py</code> (backend) and <code>types.ts</code> (frontend) — keep those two in sync by hand.</p>
+
+<h2 id="frontend">5. Frontend walkthrough</h2>
+
+<h3>Providers and routing: <code>App.tsx</code></h3>
+<p><code>DeviceProvider</code> → <code>ToastProvider</code> → <code>BrowserRouter</code> → <code>Suspense</code>. Every page except Home is <code>lazy()</code>. Admin pages nest under <code>AdminLayout</code>, which redirects to <code>/admin/login</code> if no token and exposes <code>useAdmin()</code> (current staff + pending count).</p>
+
+<h3>Desktop vs mobile: <code>lib/device.tsx</code></h3>
+<p><code>useDevice().layout</code> is <code>"mobile"</code> if the UA looks mobile <em>or</em> viewport ≤ 767px, unless overridden by <code>?layout=</code>. Pages that have distinct mobile designs are split into a thin switcher + two implementations sharing a hook:</p>
+<ul>
+  <li><code>pages/home/HomePage.tsx</code> (<code>useHomeData</code>: era in <code>localStorage</code>, pins fetch) → <code>HomeDesktop</code> | <code>HomeMobile</code></li>
+  <li><code>pages/contribute/ContributePage.tsx</code> (<code>useContributeFlow</code>: all wizard state, upload, submit) → <code>ContributeDesktop</code> (4 pages) | <code>ContributeMobile</code> (6 steps)</li>
+</ul>
+<p>Story, info and admin pages are single responsive implementations. <code>document.documentElement.dataset.layout</code> is set so CSS can target <code>[data-layout="mobile"]</code>.</p>
+
+<h3>API client: <code>lib/api.ts</code></h3>
+<p>One <code>request&lt;T&gt;()</code> wrapper over <code>fetch</code> with relative URLs (Vite proxies in dev). Throws <code>ApiError(status, message)</code>, unwrapping FastAPI's <code>detail</code>. Admin token lives in <code>localStorage["lbtf.admin.token"]</code>; pass <code>auth=true</code> to attach it. The <code>api</code> object is grouped <em>public / contributor / admin</em>, mirroring the routers.</p>
+
+<h3>Styling</h3>
+<p>Plain CSS files per area (<code>home.css</code>, <code>admin.css</code>, …) with the design system in <code>tokens.css</code>. No CSS modules, no Tailwind. Class names are short and prefixed by area (<code>adm-</code>, etc.). <code>cx()</code> in <code>util.ts</code> is the classnames helper.</p>
+
+<h2 id="map">6. The map</h2>
+<p>One component, <code>components/MapView.tsx</code> (~190 lines), no map library. It is deliberately simple because the app shows a single fixed extent of West Oakland and the source scans only carry ~1,200 px of detail across it — tiles would add serving complexity for no extra detail (the reasoning is in <code>docs/historical-maps.md</code>).</p>
+
+<h3>The one invariant: <code>lib/geo.ts::MAP_BOUNDS</code></h3>
+<div class="callout warn"><strong>Don't touch MAP_BOUNDS casually</strong>
+<code>public/basemaps/*.jpg</code> are warped to <em>exactly</em> this lat/lng box, and the same four numbers are hard-coded in <code>tools/build_basemaps.py</code>. <code>project()/unproject()</code> are a linear percent mapping over the box, which is correct <em>only because</em> the images are built on that same linear grid. Change the bounds → re-run the tool.</div>
+
+<h3>How <code>MapView</code> works</h3>
+<div class="flow">
+  <div><b>Props</b><code>era</code>, <code>pins: MapPin[]</code> (real lat/lng + label/active/cluster/color), <code>onPinClick</code>, <code>onTap</code> (returns lat/lng — used for pin placement), <code>zoomable</code>, <code>photo</code> (false = always the stylised grid), <code>children</code> for overlay chrome.</div>
+  <div><b>The "plane"</b>A <code>ResizeObserver</code> measures the container; a plane is sized to <em>cover</em> it while preserving <code>groundAspect()</code> (metres-wide / metres-tall of the bounds) — like <code>background-size: cover</code>. This is why streets don't distort on portrait phones. Zoom scales the plane; pan is a clamped px offset.</div>
+  <div><b>Pins</b>Each pin is positioned at <code>project(lat, lng)</code> as a percent of the plane, so it stays glued to its street at any container shape or zoom.</div>
+  <div><b>Pointer handling</b>Pointer capture for drag; a move under 6 px counts as a tap, which is <code>unproject()</code>ed back to lat/lng for <code>onTap</code>. Clicks on <code>.pin</code>, zoom buttons and the era control are excluded.</div>
+  <div><b>Fallback</b>If the era's JPG fails to load (<code>photoOk=false</code>) the stylised grid draws instead, from the hard-coded <code>ROADS</code> / <code>TAKINGS</code> constants in percent coordinates.</div>
+</div>
+
+<h3>Where the map is used</h3>
+<ul>
+  <li>Home (desktop 60/40 split, mobile full-bleed behind a bottom sheet) — pins + <code>EraControl</code>.</li>
+  <li>Contribute "map each place" step — <code>onTap</code> to drop a pin for places without coordinates.</li>
+  <li>Admin <code>SubmissionDetailPage</code> — the biggest page (370 lines): video player, clickable flagged transcript, timeline span editor, and a tagging map per span. Saves via <code>PUT /associations</code>; approve sends the same payload.</li>
+</ul>
+
+<h2 id="flows">7. Three end-to-end flows</h2>
+
+<h3>A. Contributor leaves a story</h3>
+<div class="flow">
+  <div><b>1 · prompt</b><code>useContributeFlow</code> fetches <code>GET /prompts/random</code>; shuffle excludes the current id.</div>
+  <div><b>2 · record / upload</b><code>Recorder.tsx</code> (MediaRecorder → webm/mp4 blob) or <code>UploadPicker.tsx</code>. Nothing is sent yet.</div>
+  <div><b>3 · processVideo()</b><code>POST /api/submissions/upload</code> (multipart). Server writes the file, runs <code>transcribe()</code> + <code>extract_places()</code> <em>inline in the request</em>, returns transcript, segments, flagged terms, detected places. UI seeds the "places you mentioned" list.</div>
+  <div><b>4 · places → map → eras → details</b>Pure client state. Places with no lat/lng need a tap on the map.</div>
+  <div><b>5 · submit</b><code>POST /api/submissions</code> with <code>upload_id</code>, places, eras, name/email, <code>agreed_norms</code>. Creates a <code>pending</code> Submission. Nothing is public yet.</div>
+</div>
+
+<h3>B. Moderator approves</h3>
+<div class="flow">
+  <div><b>queue</b><code>QueuePage</code> → <code>GET /admin/submissions?status=pending&amp;q=&amp;sort=</code>. Tabs are just the <code>status</code> param (plus "flagged" = pending with flagged terms).</div>
+  <div><b>detail</b><code>SubmissionDetailPage</code> → <code>GET /admin/submissions/{id}</code>. Reviewer drags spans on the timeline, assigns each a location (gazetteer pick or map tap) and an era. <code>PUT …/associations</code> saves drafts; <code>_validate_assocs</code> clamps to duration.</div>
+  <div><b>approve</b><code>POST …/approve</code> → <code>_publish()</code> creates Stories (one per span), sets status, writes <code>AuditEntry</code>. The location now has a pin on the public map and its transcript is in the RAG corpus immediately (retrieval queries the DB per request — no index to rebuild).</div>
+</div>
+
+<h3>C. Visitor asks the archive a question</h3>
+<div class="flow">
+  <div><b>ChatPanel / useArchiveChat</b><code>POST /api/chat</code> with the question + prior turns. Optimistic "pending" assistant bubble.</div>
+  <div><b>rag.answer()</b>BM25 top-4 passages → Claude (constrained prompt, refusal fallback) or extractive stitching. Response includes <code>mode</code> so the UI can label it.</div>
+  <div><b>citations</b><code>CitationList</code> links each cite to <code>/story/{location_id}</code>. Note: <code>/story/:id</code> is a <em>Location</em> id, not a Story id — the page shows all perspectives at that place.</div>
+</div>
+
+<h2 id="tools">8. Offline tools &amp; generated assets</h2>
+<p><code>tools/build_basemaps.py</code> is the only script. It never runs at build or runtime; it writes committed JPGs and caches the ~50 MB GeoTIFF downloads in <code>tools/.cache/</code> (gitignored).</p>
+<table>
+<tr><th>Script</th><th>Deps</th><th>Produces</th><th>When to re-run</th></tr>
+<tr><td><code>build_basemaps.py</code></td><td>rasterio, pillow, numpy (own venv — not in <code>backend/requirements.txt</code>)</td><td><code>public/basemaps/{era}.jpg</code> (~2000×1425) from three public-domain USGS "Oakland West" GeoTIFFs. Reprojects NAD27 → WGS84 (the datum shift is ~92 m here — don't skip it), clips to MAP_BOUNDS.</td><td>MAP_BOUNDS changes, or swapping a quad edition (the <code>SOURCES</code> dict maps era → scan id)</td></tr>
+</table>
+<p>USGS scans are public domain; the credit chip text lives in <code>BASEMAPS</code> in <code>geo.ts</code>. The research half of <code>docs/historical-maps.md</code> lists other candidate sources (Sanborn sheets, aerials, HOLC) and a MapLibre tile path if deep zoom is ever wanted — none of that is implemented on <code>main</code>.</p>
+
+<h2 id="gotchas">9. Gotchas &amp; conventions</h2>
+<ul>
+  <li><strong>No migrations.</strong> Schema change → <code>make reset-db</code>. The seed is the de facto fixture set for both manual QA and tests.</li>
+  <li><strong>Eras are defined twice:</strong> <code>backend/app/config.py::ERAS</code> and <code>frontend/src/lib/types.ts::ERAS</code> (plus <code>BASEMAPS</code> keys in <code>geo.ts</code>). Adding an era touches all of them plus the tool.</li>
+  <li><strong>Upload is synchronous.</strong> Transcription runs inside the HTTP request. Fine for mock; with Whisper a long clip will hold the request for minutes — a background job is the obvious next step.</li>
+  <li><strong>RAG has no index.</strong> <code>retrieve()</code> loads every Story and recomputes BM25 each call. Fine at hundreds of stories, revisit at thousands.</li>
+  <li><strong>One token per staff member.</strong> Logging in elsewhere invalidates the first session.</li>
+  <li><strong>Map container needs a height.</strong> <code>MapView</code> measures its container; if the parent doesn't give it explicit height the map renders 0 px tall. Check layout CSS before blaming the component.</li>
+  <li><strong>Tests use the mock transcriber and <code>LBTF_USE_CLAUDE=0</code></strong> via <code>conftest.py</code> env vars set <em>before</em> importing <code>app</code> — order matters because <code>config.py</code> reads env at import.</li>
+  <li><strong>The frontend's <code>types.ts</code> is hand-mirrored</strong> from <code>schemas.py</code>. There's no codegen; diff them when changing a response shape.</li>
+  <li>Pins only appear for Locations with published stories (<code>list_locations</code> skips <code>story_count == 0</code>). A Location created by a moderator with no approved story is invisible publicly but still shows in the admin gazetteer.</li>
+  <li>Seed pin coordinates are "correct block" quality (verified against OSM / the 1949 quad); real submissions get moderator-placed pins anyway.</li>
+</ul>
+
+<h2 id="where">10. "Where do I change X?"</h2>
+<table>
+<tr><th>I want to…</th><th>Go to</th></tr>
+<tr><td>Add an API endpoint</td><td>Router in <code>backend/app/routers/</code> → schema in <code>schemas.py</code> → client fn in <code>frontend/src/lib/api.ts</code> → type in <code>types.ts</code></td></tr>
+<tr><td>Change what the chat says / how it cites</td><td><code>services/rag.py</code> (<code>_compose_with_claude</code> prompt, <code>_compose_extractive</code>); UI in <code>components/ChatPanel.tsx</code></td></tr>
+<tr><td>Improve place detection</td><td><code>services/places.py</code>; add aliases to seeded Locations in <code>seed.py</code></td></tr>
+<tr><td>Change how approval creates stories</td><td><code>routers/admin.py::_publish</code> / <code>_resolve_location</code></td></tr>
+<tr><td>Tweak the moderation UI (spans, tagging)</td><td><code>pages/admin/SubmissionDetailPage.tsx</code></td></tr>
+<tr><td>Change map pan/zoom/pin behaviour</td><td><code>components/MapView.tsx</code>; projection maths in <code>lib/geo.ts</code></td></tr>
+<tr><td>Swap a basemap edition or change the extent</td><td><code>lib/geo.ts::MAP_BOUNDS</code> + <code>tools/build_basemaps.py</code> (<code>SOURCES</code>, bounds), re-run, commit the JPGs</td></tr>
+<tr><td>Change the sample archive / staff logins</td><td><code>backend/app/seed.py</code>, then <code>make reset-db</code></td></tr>
+<tr><td>Adjust mobile/desktop switching</td><td><code>lib/device.tsx</code> (<code>MOBILE_MAX</code>, UA regex)</td></tr>
+<tr><td>Change colours / type / spacing</td><td><code>styles/tokens.css</code></td></tr>
+<tr><td>Add a protected admin page</td><td>Route under <code>/admin</code> in <code>App.tsx</code>; page reads <code>useAdmin()</code>; nav link in <code>AdminLayout.tsx</code></td></tr>
+</table>
+
+<footer>Generated from the repo as of 2026-08-22 on branch <code>main</code> (HEAD <code>159914e</code>). Companion docs: <code>README.md</code>, <code>docs/historical-maps.md</code>. The <code>digitized-maps-v1</code> branch carries its own version of this tour covering the MapLibre / vector-overlay / aerial work.</footer>
+
+</div>
+</body>
+</html>
