@@ -1,0 +1,34 @@
+# Render blueprint — one free web service running the FastAPI backend, which
+# also serves the built React SPA (single origin). Docs: https://render.com/docs/blueprint-spec
+#
+# First deploy: New → Blueprint → pick this repo. Render reads this file and
+# prompts for the one secret below (LBTF_SITE_PASSWORD). Every push to the
+# service's branch then auto-deploys.
+#
+# NOTE: the free plan has no persistent disk, so the SQLite DB and uploaded
+# videos reset on each deploy/restart (the sample archive re-seeds on boot).
+services:
+  - type: web
+    name: life-before-the-freeway
+    runtime: python
+    plan: free
+    region: oregon
+    # Render's native Python build image also provides Node (pin with NODE_VERSION).
+    buildCommand: |
+      pip install -r backend/requirements.txt
+      cd frontend && npm ci --include=dev && npm run build
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # Exempt from the password gate, so health checks pass even when gated.
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.4"
+      - key: NODE_VERSION
+        value: "24"
+      # Deterministic offline transcription; Whisper won't fit the free instance.
+      - key: LBTF_TRANSCRIBER
+        value: mock
+      # Shared preview password. sync:false → value is entered in the Render
+      # dashboard, never stored in this committed file. Unset = site is public.
+      - key: LBTF_SITE_PASSWORD
+        sync: false

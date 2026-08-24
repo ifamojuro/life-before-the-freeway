@@ -11,9 +11,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .config import CORS_ORIGINS, UPLOAD_DIR
+from .config import BASE_DIR, CORS_ORIGINS, UPLOAD_DIR
 from .db import Base, SessionLocal, engine
 from .routers import admin, public, submissions
 from .seed import seed
@@ -78,3 +79,26 @@ app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 @app.get("/api/health")
 def health():
     return {"ok": True}
+
+
+# In production we serve the built SPA from this same origin (matching the Vite
+# dev proxy's "one origin in prod" assumption). The block is skipped when there
+# is no build — so local dev (Vite serves the frontend) and the test suite are
+# unaffected. Registered last, so /api/* and /uploads/* above take precedence.
+SPA_DIST = BASE_DIR.parent / "frontend" / "dist"
+if SPA_DIST.is_dir():
+    app.mount("/assets", StaticFiles(directory=str(SPA_DIST / "assets")), name="spa-assets")
+
+    @app.get("/{full_path:path}")
+    async def spa_shell(full_path: str):
+        # Confine the resolved path to the dist root. Without this, a
+        # percent-encoded traversal (e.g. /..%2f..%2fbackend%2flbtf.db) would
+        # escape dist/ and serve any file the process can read — pathlib's `/`
+        # doesn't collapse `..`, but the filesystem does when FileResponse
+        # stats it. StaticFiles guards its own mounts; this hand-rolled
+        # handler has to do it itself.
+        root = SPA_DIST.resolve()
+        candidate = (root / full_path).resolve()
+        if full_path and candidate.is_file() and candidate.is_relative_to(root):
+            return FileResponse(candidate)
+        return FileResponse(root / "index.html")  # client-side route → SPA shell
