@@ -83,5 +83,6 @@ seeded accounts `randolph@lbtf.org` (super-admin), `maya@lbtf.org`,
 
 ```bash
 cd backend && make test                     # 9 tests: full contributor → moderation flow, RAG scoping, auth, field capture
+cd frontend && npm test                     # Vitest (jsdom + Testing Library), src/**/*.test.ts(x)
 cd frontend && npm run build                # typecheck + production build
 ```
