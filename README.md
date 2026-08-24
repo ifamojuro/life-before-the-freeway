@@ -78,6 +78,7 @@ seeded accounts `randolph@lbtf.org` (super-admin), `maya@lbtf.org`,
 | `LBTF_USE_CLAUDE` | `auto` | `1`/`0` to force/disable Claude |
 | `LBTF_TRANSCRIBER` | `mock` | `whisper` for real transcription |
 | `LBTF_CORS_ORIGINS` | `http://localhost:5173,…` | dev CORS |
+| `LBTF_SITE_PASSWORD` | — | when set, gate the whole site (SPA + API + /uploads) behind one shared password via HTTP Basic auth; unset = open. `/api/health` stays open. |
 
 ## Tests
 
