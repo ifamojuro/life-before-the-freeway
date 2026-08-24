@@ -35,12 +35,20 @@ def issue_token() -> str:
 
 
 def current_staff(
+    x_staff_token: str | None = Header(default=None),
     authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ) -> Staff:
-    if not authorization or not authorization.lower().startswith("bearer "):
+    # Prefer the dedicated X-Staff-Token header. The Authorization header can't
+    # be used for the staff token when the site sits behind the optional
+    # HTTP Basic gate (LBTF_SITE_PASSWORD) — the browser owns Authorization for
+    # Basic, so a `Bearer` there would collide with (and be overwritten by) it.
+    # Bearer is still accepted as a fallback (tests, curl, ungated deployments).
+    token = (x_staff_token or "").strip()
+    if not token and authorization and authorization.lower().startswith("bearer "):
+        token = authorization.split(" ", 1)[1].strip()
+    if not token:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Staff login required")
-    token = authorization.split(" ", 1)[1].strip()
     staff = db.execute(select(Staff).where(Staff.token == token, Staff.active.is_(True))).scalar_one_or_none()
     if not staff:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Session expired — sign in again")

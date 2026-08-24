@@ -25,8 +25,11 @@ async function request<T>(path: string, init: RequestInit = {}, auth = false): P
   const headers: Record<string, string> = { ...(init.headers as Record<string, string> | undefined) };
   if (!(init.body instanceof FormData) && init.body) headers["Content-Type"] = "application/json";
   if (auth) {
+    // Send the staff token in its own header, not Authorization: when the site
+    // is behind the optional HTTP Basic gate the browser owns Authorization,
+    // so a Bearer there would be overwritten and the request would 401.
     const t = getToken();
-    if (t) headers["Authorization"] = `Bearer ${t}`;
+    if (t) headers["X-Staff-Token"] = t;
   }
   const res = await fetch(path, { ...init, headers });
   if (res.status === 204) return undefined as T;
