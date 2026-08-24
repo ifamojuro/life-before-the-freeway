@@ -91,7 +91,14 @@ if SPA_DIST.is_dir():
 
     @app.get("/{full_path:path}")
     async def spa_shell(full_path: str):
-        candidate = SPA_DIST / full_path
-        if full_path and candidate.is_file():
+        # Confine the resolved path to the dist root. Without this, a
+        # percent-encoded traversal (e.g. /..%2f..%2fbackend%2flbtf.db) would
+        # escape dist/ and serve any file the process can read — pathlib's `/`
+        # doesn't collapse `..`, but the filesystem does when FileResponse
+        # stats it. StaticFiles guards its own mounts; this hand-rolled
+        # handler has to do it itself.
+        root = SPA_DIST.resolve()
+        candidate = (root / full_path).resolve()
+        if full_path and candidate.is_file() and candidate.is_relative_to(root):
             return FileResponse(candidate)
-        return FileResponse(SPA_DIST / "index.html")  # client-side route → SPA shell
+        return FileResponse(root / "index.html")  # client-side route → SPA shell
