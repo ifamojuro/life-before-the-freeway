@@ -14,6 +14,13 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
+if os.environ.get("LBTF_TEST_DATABASE_URL"):
+    # A shared Postgres keeps state between runs (unlike the temp SQLite file);
+    # start each session from an empty schema so runs are repeatable.
+    from app.db import Base, engine
+
+    Base.metadata.drop_all(engine)
+
 
 @pytest.fixture(scope="session")
 def client():
