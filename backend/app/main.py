@@ -5,6 +5,7 @@ Run:  uvicorn app.main:app --reload --port 8000   (from backend/)
 from __future__ import annotations
 
 import base64
+import logging
 import os
 import secrets
 from contextlib import asynccontextmanager
@@ -14,14 +15,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from . import config
 from .config import BASE_DIR, CORS_ORIGINS, UPLOAD_DIR
 from .db import Base, SessionLocal, engine
 from .routers import admin, public, submissions
 from .seed import seed
 
+# Fail fast: an incomplete environment stops the process here, before uvicorn
+# binds a port, so a bad deploy is marked failed instead of half-working.
+config.validate_or_exit()
+
+log = logging.getLogger("lbtf")
+if not logging.getLogger().handlers:  # uvicorn configures its own loggers, not root
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    log.info(config.describe())
     Base.metadata.create_all(engine)
     with SessionLocal() as db:
         seed(db)

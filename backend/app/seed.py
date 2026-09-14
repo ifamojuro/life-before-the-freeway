@@ -1,19 +1,58 @@
-"""Seed the database with the wireframe's sample archive so the app is
-explorable immediately. Safe to run repeatedly (no-op once seeded)."""
+"""Startup seeding, in two layers (see LBTF_SEED in config.py):
+
+- ``seed_base``   the prompt bank + the first admin account. Every environment
+                  needs these and nothing else. Idempotent per item.
+- ``seed_sample`` the wireframe's sample archive (fake locations, stories,
+                  moderation queue, comments, staff) so a fresh local checkout
+                  is explorable immediately. No-op once any location exists.
+
+``seed`` dispatches on the configured mode. Safe to run on every start.
+"""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from . import config
 from .auth import hash_password
 from .models import AuditEntry, Comment, Location, Prompt, Staff, Story, Submission
 
 ERA_LABEL = {"1950": "~1950 · before", "1965": "1965 · the takings", "1985": "1985 · after"}
 
+PROMPTS = [
+    "What's the best thing about being Black in West Oakland?",
+    "Tell me about a business on 7th Street you still think about.",
+    "What did the neighborhood sound like before the freeway?",
+    "Where did your family go on Sundays?",
+    "What do you remember about the day the houses started coming down?",
+    "Who was a neighbor everybody knew?",
+    "What's a corner that means something to you, and why?",
+]
+
 
 def seed(db: Session) -> None:
+    if config.SEED == "none":
+        return
+    seed_base(db)
+    if config.SEED == "sample":
+        seed_sample(db)
+
+
+def seed_base(db: Session) -> None:
+    """Prompts (if the table is empty) and the first admin (if that email is absent)."""
+    if not db.execute(select(Prompt.id).limit(1)).first():
+        db.add_all(Prompt(text=t) for t in PROMPTS)
+    if config.ADMIN_EMAIL and config.ADMIN_PASSWORD:
+        exists = db.execute(select(Staff.id).where(func.lower(Staff.email) == config.ADMIN_EMAIL.lower())).first()
+        if not exists:
+            db.add(Staff(name=config.ADMIN_NAME, email=config.ADMIN_EMAIL, role="super-admin",
+                         password_hash=hash_password(config.ADMIN_PASSWORD), color="#0F7B6C"))
+    db.commit()
+
+
+def seed_sample(db: Session) -> None:
     if db.execute(select(Location.id).limit(1)).first():
         return
 
@@ -105,16 +144,6 @@ def seed(db: Session) -> None:
                 text="Grew up hearing about this place. Never knew exactly where it was until this map."),
         Comment(location_id=locations["bank"].id, author="Paula R.", created_at=now - timedelta(days=6),
                 text="My mother opened her first account on this corner. She kept the passbook her whole life."),
-    ])
-
-    db.add_all([
-        Prompt(text="What's the best thing about being Black in West Oakland?"),
-        Prompt(text="Tell me about a business on 7th Street you still think about."),
-        Prompt(text="What did the neighborhood sound like before the freeway?"),
-        Prompt(text="Where did your family go on Sundays?"),
-        Prompt(text="What do you remember about the day the houses started coming down?"),
-        Prompt(text="Who was a neighbor everybody knew?"),
-        Prompt(text="What's a corner that means something to you, and why?"),
     ])
 
     staff = [
