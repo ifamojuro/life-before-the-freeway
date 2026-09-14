@@ -3,7 +3,9 @@ import tempfile
 from pathlib import Path
 
 _tmp = tempfile.mkdtemp()
-os.environ["LBTF_DATABASE_URL"] = f"sqlite:///{Path(_tmp) / 'test.db'}"
+# Default: a throwaway SQLite file. Set LBTF_TEST_DATABASE_URL to run the same
+# suite against a real (empty) Postgres, as CI does.
+os.environ["LBTF_DATABASE_URL"] = os.environ.get("LBTF_TEST_DATABASE_URL") or f"sqlite:///{Path(_tmp) / 'test.db'}"
 os.environ["LBTF_UPLOAD_DIR"] = str(Path(_tmp) / "uploads")
 os.environ["LBTF_USE_CLAUDE"] = "0"
 
