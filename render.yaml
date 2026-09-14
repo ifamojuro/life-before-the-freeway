@@ -1,12 +1,15 @@
 # Render blueprint — one free web service running the FastAPI backend, which
 # also serves the built React SPA (single origin). Docs: https://render.com/docs/blueprint-spec
 #
-# First deploy: New → Blueprint → pick this repo. Render reads this file and
-# prompts for the one secret below (LBTF_SITE_PASSWORD). Every push to the
-# service's branch then auto-deploys.
+# First deploy: New → Blueprint → pick this repo. Then, in the service's
+# Environment tab, add a Secret File named ".env.staging" with the contents of
+# backend/.env.staging (see backend/.env.staging.example) — database URLs,
+# seed mode, admin bootstrap, site password. The start command sources it from
+# /etc/secrets/ and fails the deploy if it is missing. Every push to the
+# service's branch then auto-deploys; the app runs migrations on start.
 #
-# NOTE: the free plan has no persistent disk, so the SQLite DB and uploaded
-# videos reset on each deploy/restart (the sample archive re-seeds on boot).
+# NOTE: the free plan has no persistent disk. The database lives in Neon and
+# (Phase 4) videos in R2; anything written to local disk resets on deploy.
 services:
   - type: web
     name: life-before-the-freeway
@@ -17,7 +20,7 @@ services:
     buildCommand: |
       pip install -r backend/requirements.txt
       cd frontend && npm ci --include=dev && npm run build
-    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: cd backend && set -a && . /etc/secrets/.env.staging && set +a && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     # Exempt from the password gate, so health checks pass even when gated.
     healthCheckPath: /api/health
     envVars:
@@ -25,10 +28,5 @@ services:
         value: "3.13.4"
       - key: NODE_VERSION
         value: "24"
-      # Deterministic offline transcription; Whisper won't fit the free instance.
-      - key: LBTF_TRANSCRIBER
-        value: mock
-      # Shared preview password. sync:false → value is entered in the Render
-      # dashboard, never stored in this committed file. Unset = site is public.
-      - key: LBTF_SITE_PASSWORD
-        sync: false
+      # Everything else (database, seed mode, admin, site password) comes from
+      # the .env.staging secret file — one profile, shared with `make dev-staging`.
