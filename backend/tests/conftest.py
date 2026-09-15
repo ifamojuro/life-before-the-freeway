@@ -8,6 +8,7 @@ _tmp = tempfile.mkdtemp()
 os.environ["LBTF_DATABASE_URL"] = os.environ.get("LBTF_TEST_DATABASE_URL") or f"sqlite:///{Path(_tmp) / 'test.db'}"
 os.environ["LBTF_UPLOAD_DIR"] = str(Path(_tmp) / "uploads")
 os.environ["LBTF_USE_CLAUDE"] = "0"
+os.environ["LBTF_SEED"] = "sample"  # the suite asserts against the sample archive
 
 import pytest
 from fastapi.testclient import TestClient

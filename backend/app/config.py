@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 UPLOAD_DIR = Path(os.environ.get("LBTF_UPLOAD_DIR", BASE_DIR / "uploads"))
@@ -23,6 +25,23 @@ def _normalise_db_url(url: str) -> str:
 
 DATABASE_URL = _normalise_db_url(os.environ.get("LBTF_DATABASE_URL", f"sqlite:///{BASE_DIR / 'lbtf.db'}"))
 IS_SQLITE = DATABASE_URL.startswith("sqlite")
+
+# What to seed on startup:
+#   base    prompts + the first admin account (LBTF_ADMIN_EMAIL / _PASSWORD).
+#           Every environment needs these; nothing else. Staging runs this.
+#   sample  base + the wireframe's sample archive (fake locations, stories,
+#           queue, comments, staff). Local dev and the test suite.
+#   none    touch nothing (e.g. after restoring a dump).
+# Default depends on the database: sample data belongs in a disposable SQLite
+# file, so a Postgres URL with no explicit mode gets "base" — a forgotten
+# setting can't put fake stories in a real database.
+SEED_MODES = ("base", "sample", "none")
+SEED = os.environ.get("LBTF_SEED") or ("sample" if IS_SQLITE else "base")
+ADMIN_EMAIL = os.environ.get("LBTF_ADMIN_EMAIL", "")
+ADMIN_PASSWORD = os.environ.get("LBTF_ADMIN_PASSWORD", "")
+ADMIN_NAME = os.environ.get("LBTF_ADMIN_NAME", "Admin")
+
+SITE_PASSWORD = os.environ.get("LBTF_SITE_PASSWORD", "")
 
 # RAG chat: when an Anthropic credential is available the answer is composed by
 # Claude, constrained to the retrieved interview excerpts. Otherwise an
@@ -50,3 +69,37 @@ ERAS = [
     {"key": "1985", "year": "1985", "label": "Freeway opens / today", "detail": "The neighborhood after I-980."},
 ]
 ERA_KEYS = [e["key"] for e in ERAS]
+
+
+def validate() -> list[str]:
+    """Return the problems with the current configuration (empty = fine).
+
+    Each mode that needs extra settings declares them here, so a deploy with an
+    incomplete environment fails at startup with a list, not at first use.
+    """
+    problems: list[str] = []
+    if SEED not in SEED_MODES:
+        problems.append(f"LBTF_SEED={SEED!r} is not one of {', '.join(SEED_MODES)}")
+    if SEED == "base":
+        if not ADMIN_EMAIL:
+            problems.append("LBTF_ADMIN_EMAIL is required when LBTF_SEED=base")
+        if not ADMIN_PASSWORD:
+            problems.append("LBTF_ADMIN_PASSWORD is required when LBTF_SEED=base")
+    if TRANSCRIBER not in ("mock", "whisper"):
+        problems.append(f"LBTF_TRANSCRIBER={TRANSCRIBER!r} is not mock or whisper")
+    return problems
+
+
+def validate_or_exit() -> None:
+    problems = validate()
+    if problems:
+        sys.exit("Refusing to start. Missing or invalid settings:\n  " + "\n  ".join(problems))
+
+
+def describe() -> str:
+    """One line for the startup log: enough to spot a misconfigured deploy."""
+    host = "sqlite" if IS_SQLITE else (urlparse(DATABASE_URL).hostname or "?")
+    return (
+        f"config: db={host} seed={SEED} transcriber={TRANSCRIBER} "
+        f"gate={'on' if SITE_PASSWORD else 'OFF'} uploads={UPLOAD_DIR}"
+    )
