@@ -41,6 +41,21 @@ seeded accounts `randolph@lbtf.org` (super-admin), `maya@lbtf.org`,
 | 04 Admin — moderation panel | `/admin` | queue tabs (pending/flagged/approved/rejected), search/sort, field-capture callout, audit log |
 | 04b Admin — submission detail | `/admin/submissions/:id` | video player, clickable flagged transcript, **timeline span → location tagging** (drag/resize spans, era per span), approve publishes one story per span |
 
+## Environments
+
+| | code | data | how |
+|---|---|---|---|
+| dev | local | sample archive, SQLite | `make dev` (defaults; nothing to configure) |
+| dev-staging | local | **staging** Postgres — real data, writes count | `make dev-staging`, loads `backend/.env.staging` |
+| staging | Render | same staging Postgres | Render sources the same file as a Secret File (see `render.yaml`) |
+
+Real stories live in exactly one place (staging). Local work reaches them by
+pointing at staging, never by copying. `backend/.env.staging.example` lists
+every setting; the app refuses to start if a chosen mode is missing one.
+
+Handoff to another account later: `pg_dump`/restore the database, copy the
+bucket, rewrite the video URL prefix in one `UPDATE`, transfer the GitHub repo.
+
 ## Database schema changes
 
 The schema is managed by Alembic (`backend/alembic/`). On start the API runs
