@@ -6,7 +6,19 @@ import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
+from dotenv import load_dotenv
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# LBTF_ENV_FILE=path loads a profile (e.g. backend/.env.staging) before any
+# setting is read, for tools that don't go through uvicorn's --env-file
+# (alembic, scripts). Parsed by python-dotenv, never the shell, so connection
+# strings containing & or ? need no quoting. Existing variables win.
+_ENV_FILE = os.environ.get("LBTF_ENV_FILE")
+if _ENV_FILE:
+    if not Path(_ENV_FILE).is_file():
+        sys.exit(f"LBTF_ENV_FILE={_ENV_FILE!r} does not exist")
+    load_dotenv(_ENV_FILE, override=False)
 UPLOAD_DIR = Path(os.environ.get("LBTF_UPLOAD_DIR", BASE_DIR / "uploads"))
 
 
