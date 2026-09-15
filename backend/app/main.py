@@ -17,7 +17,8 @@ from fastapi.staticfiles import StaticFiles
 
 from . import config
 from .config import BASE_DIR, CORS_ORIGINS, UPLOAD_DIR
-from .db import Base, SessionLocal, engine
+from .db import SessionLocal, engine
+from .migrate import run_migrations
 from .routers import admin, public, submissions
 from .seed import seed
 
@@ -33,7 +34,7 @@ if not logging.getLogger().handlers:  # uvicorn configures its own loggers, not 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     log.info(config.describe())
-    Base.metadata.create_all(engine)
+    run_migrations(engine)  # alembic upgrade head (stamps pre-alembic DBs first)
     with SessionLocal() as db:
         seed(db)
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)

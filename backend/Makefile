@@ -7,7 +7,7 @@ PIP     := $(VENV)/bin/pip
 UVICORN := $(VENV)/bin/uvicorn
 PORT    ?= 8000
 
-.PHONY: help setup dev run test reset-db clean
+.PHONY: help setup dev run test migrate migration reset-db clean
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
@@ -27,6 +27,12 @@ run: setup ## Run the API without reload (closer to production)
 
 test: setup ## Run the test suite
 	$(PY) -m pytest -q
+
+migrate: setup ## Apply migrations to the configured DB (the app also does this on start)
+	$(VENV)/bin/alembic upgrade head
+
+migration: setup ## Write a new migration from model changes: make migration M="add foo"
+	$(VENV)/bin/alembic revision --autogenerate -m "$(M)"
 
 reset-db: ## Delete the SQLite DB + uploads; reseeds on next start
 	rm -f lbtf.db

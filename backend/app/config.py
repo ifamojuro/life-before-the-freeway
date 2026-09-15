@@ -25,6 +25,9 @@ def _normalise_db_url(url: str) -> str:
 
 DATABASE_URL = _normalise_db_url(os.environ.get("LBTF_DATABASE_URL", f"sqlite:///{BASE_DIR / 'lbtf.db'}"))
 IS_SQLITE = DATABASE_URL.startswith("sqlite")
+# Migrations may use a different URL: Neon hands out a pooled string (PgBouncer,
+# for the app) and a direct one (for DDL). Unset = same as the app.
+MIGRATE_DATABASE_URL = _normalise_db_url(os.environ.get("LBTF_MIGRATE_DATABASE_URL") or "") or DATABASE_URL
 
 # What to seed on startup:
 #   base    prompts + the first admin account (LBTF_ADMIN_EMAIL / _PASSWORD).

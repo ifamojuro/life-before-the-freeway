@@ -41,6 +41,24 @@ seeded accounts `randolph@lbtf.org` (super-admin), `maya@lbtf.org`,
 | 04 Admin — moderation panel | `/admin` | queue tabs (pending/flagged/approved/rejected), search/sort, field-capture callout, audit log |
 | 04b Admin — submission detail | `/admin/submissions/:id` | video player, clickable flagged transcript, **timeline span → location tagging** (drag/resize spans, era per span), approve publishes one story per span |
 
+## Database schema changes
+
+The schema is managed by Alembic (`backend/alembic/`). On start the API runs
+`upgrade head` itself, so a fresh database, the test suite and the hosted
+instance all reach the same schema through the same path; databases created
+before Alembic existed are stamped at the baseline first.
+
+To change the schema: edit `app/models.py`, then
+
+```bash
+cd backend
+make migration M="add instagram_shortcode to stories"   # writes alembic/versions/<date>_<rev>_<slug>.py
+make migrate                                            # or just start the app
+```
+
+Review the generated file and commit it in the same PR as the model change.
+`tests/test_migrations.py` fails if the migrations and the models drift apart.
+
 ## How the pieces work
 
 - **RAG chat** (`backend/app/services/rag.py`): BM25-style retrieval over the
