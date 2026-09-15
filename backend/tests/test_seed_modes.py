@@ -71,3 +71,17 @@ def test_describe_names_db_and_mode(monkeypatch):
     monkeypatch.setattr(config, "SITE_PASSWORD", "x")
     line = config.describe()
     assert "seed=base" in line and "gate=on" in line and "db=" in line
+
+
+def test_env_file_with_ampersand_url_loads(tmp_path):
+    """Neon URLs contain '&'; the profile must be parsed by dotenv, not the shell."""
+    import subprocess, sys
+    from pathlib import Path
+    env_file = tmp_path / "profile.env"
+    env_file.write_text("LBTF_DATABASE_URL=postgresql://u:p@example.neon.tech/db?sslmode=require&channel_binding=require\nLBTF_SEED=none\n")
+    code = "from app import config; print(config.DATABASE_URL); print(config.SEED)"
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
+                         env={"LBTF_ENV_FILE": str(env_file)}, cwd=str(Path(__file__).resolve().parents[1]))
+    assert out.returncode == 0, out.stderr
+    assert "channel_binding=require" in out.stdout and "postgresql+psycopg://" in out.stdout
+    assert out.stdout.strip().endswith("none")

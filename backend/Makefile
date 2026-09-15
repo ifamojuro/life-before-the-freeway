@@ -39,7 +39,7 @@ migrate: setup ## Apply migrations to the configured DB (the app also does this 
 	$(VENV)/bin/alembic upgrade head
 
 migrate-staging: setup .env.staging ## Apply migrations to the STAGING database
-	set -a; . ./.env.staging; set +a; $(VENV)/bin/alembic upgrade head
+	LBTF_ENV_FILE=.env.staging $(VENV)/bin/alembic upgrade head
 
 migration: setup ## Write a new migration from model changes: make migration M="add foo"
 	$(VENV)/bin/alembic revision --autogenerate -m "$(M)"

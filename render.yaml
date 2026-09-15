@@ -4,7 +4,7 @@
 # First deploy: New → Blueprint → pick this repo. Then, in the service's
 # Environment tab, add a Secret File named ".env.staging" with the contents of
 # backend/.env.staging (see backend/.env.staging.example) — database URLs,
-# seed mode, admin bootstrap, site password. The start command sources it from
+# seed mode, admin bootstrap, site password. The start command loads it from
 # /etc/secrets/ and fails the deploy if it is missing. Every push to the
 # service's branch then auto-deploys; the app runs migrations on start.
 #
@@ -20,7 +20,11 @@ services:
     buildCommand: |
       pip install -r backend/requirements.txt
       cd frontend && npm ci --include=dev && npm run build
-    startCommand: cd backend && set -a && . /etc/secrets/.env.staging && set +a && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # The profile is parsed by uvicorn's --env-file (python-dotenv), NOT sourced
+    # by the shell: Neon URLs contain "&", which the shell would treat as a
+    # background operator and silently drop the variable. `test -f` fails the
+    # deploy if the secret file is missing. Migrations run inside the app.
+    startCommand: test -f /etc/secrets/.env.staging && cd backend && uvicorn app.main:app --env-file /etc/secrets/.env.staging --host 0.0.0.0 --port $PORT
     # Exempt from the password gate, so health checks pass even when gated.
     healthCheckPath: /api/health
     envVars:
