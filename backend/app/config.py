@@ -6,7 +6,23 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 UPLOAD_DIR = Path(os.environ.get("LBTF_UPLOAD_DIR", BASE_DIR / "uploads"))
-DATABASE_URL = os.environ.get("LBTF_DATABASE_URL", f"sqlite:///{BASE_DIR / 'lbtf.db'}")
+
+
+def _normalise_db_url(url: str) -> str:
+    """Accept the URL forms hosted Postgres providers hand out and pin the driver.
+
+    Neon/Render/Heroku-style URLs start with ``postgres://`` or ``postgresql://``;
+    SQLAlchemy needs ``postgresql+psycopg://`` to pick psycopg 3 (the driver we
+    ship) rather than defaulting to psycopg2. SQLite URLs pass through untouched.
+    """
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
+    return url
+
+
+DATABASE_URL = _normalise_db_url(os.environ.get("LBTF_DATABASE_URL", f"sqlite:///{BASE_DIR / 'lbtf.db'}"))
+IS_SQLITE = DATABASE_URL.startswith("sqlite")
 
 # RAG chat: when an Anthropic credential is available the answer is composed by
 # Claude, constrained to the retrieved interview excerpts. Otherwise an
