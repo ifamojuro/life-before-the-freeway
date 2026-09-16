@@ -39,8 +39,8 @@ export function ContributeDesktop({ flow }: { flow: ContributeFlow }) {
       <div className="dtc-body">
         <aside className="dtc-aside">
           <div className="pr">Your prompt</div>
-          <div className="qm">“{flow.prompt?.text ?? "…"}”</div>
-          <button type="button" className="shuffle" onClick={() => void flow.shufflePrompt()} disabled={page === 5}>↻ Give me a different prompt</button>
+          <div key={flow.prompt?.id ?? "none"} className="qm prompt-swap">“{flow.prompt?.text ?? "…"}”</div>
+          <button type="button" className="wbtn secondary shuffle" onClick={() => void flow.shufflePrompt()} disabled={page === 5}>↻ Give me a different prompt</button>
           <div className="dtc-steps">
             {STEPS.map((s, i) => {
               const n = (i + 1) as Page;

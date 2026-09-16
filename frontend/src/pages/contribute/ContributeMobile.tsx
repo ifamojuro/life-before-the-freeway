@@ -56,7 +56,8 @@ export function ContributeMobile({ flow }: { flow: ContributeFlow }) {
         <>
           <div className="ph-content">
             <div className="ph-eyebrow">Your prompt</div>
-            <div className="prompt-card"><div className="qm">“</div><p>{flow.prompt?.text ?? "…"}</p></div>
+            <div className="prompt-card"><div className="qm">“</div><p key={flow.prompt?.id ?? "none"} className="prompt-swap">{flow.prompt?.text ?? "…"}</p></div>
+            <button type="button" className="wbtn secondary prompt-shuffle" onClick={() => void flow.shufflePrompt()}>↻ Give me a different prompt</button>
             <div className="prompt-meta">Open-ended — there's no wrong answer. Speak from your own memory.</div>
             <div className="era-callout">
               <div className="ec-lbl">◆ We're especially seeking</div>
@@ -65,7 +66,6 @@ export function ContributeMobile({ flow }: { flow: ContributeFlow }) {
                 {ERAS.map((e) => <div key={e.key} className="ec-yr"><b>{e.year}</b><span>{e.key === "1950" ? "Before" : e.key === "1965" ? "Takings" : "After"}</span></div>)}
               </div>
             </div>
-            <button type="button" className="prompt-shuffle" onClick={() => void flow.shufflePrompt()}>↻ Give me a different prompt</button>
           </div>
           <div className="ph-footer"><button type="button" className="wbtn primary wide" onClick={next}>Tell your story</button></div>
         </>
