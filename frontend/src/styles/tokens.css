@@ -99,6 +99,10 @@ video {
 .wbtn.primary { background: var(--teal); color: #fff; }
 .wbtn.primary:hover { background: var(--teal-lt); color: #fff; }
 .wbtn.ghost { background: transparent; color: var(--night); border: 1px solid var(--line); }
+/* secondary: the outlined companion to .primary — same weight of presence, no fill */
+.wbtn.secondary { background: transparent; color: var(--teal); border: 1.5px solid var(--teal); }
+.wbtn.secondary:hover { background: var(--mist); color: var(--teal); }
+.wbtn.secondary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .wbtn.ghost:hover { background: rgba(13, 27, 42, 0.04); color: var(--night); }
 .wbtn.gold { background: var(--gold); color: var(--night); }
 .wbtn.gold:hover { background: #e0ad22; color: var(--night); }
