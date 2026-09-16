@@ -142,22 +142,50 @@ def save_associations(sid: int, body: AssociationsIn, staff: Staff = Depends(cur
     return _detail(db, s)
 
 
+def _find_location_by_name(db: Session, name: str) -> Location | None:
+    """An existing pin whose name or alias matches (case-insensitive)."""
+    key = name.strip().lower()
+    if not key:
+        return None
+    hit = db.execute(select(Location).where(func.lower(Location.name) == key)).scalars().first()
+    if hit:
+        return hit
+    for loc in db.execute(select(Location)).scalars():
+        if key in [a.lower() for a in (loc.aliases or [])]:
+            return loc
+    return None
+
+
 def _resolve_location(db: Session, *, location_id: int | None, name: str, sub: str, lat: float | None, lng: float | None,
-                      eras: list[str]) -> Location | None:
+                      eras: list[str], seen: dict[str, Location] | None = None) -> Location | None:
+    """The Location a span/place maps to, creating one only when nothing matches.
+
+    Resolution order: explicit location_id; a location already created or
+    reused during this same publish (`seen`, keyed by name), so several spans
+    tagged to one new place share a single pin; an existing pin with that name
+    or alias; otherwise a new row. Eras are merged into whatever is returned.
+    """
+    loc: Location | None = None
     if location_id:
         loc = db.get(Location, location_id)
-        if loc:
-            for e in eras:
-                if e not in (loc.eras or []):
-                    loc.eras = [*(loc.eras or []), e]
-            return loc
-    if not name and lat is None:
-        return None
-    if lat is None or lng is None:
-        return None
-    loc = Location(name=name or sub or "Untitled place", cross_street=sub or "", lat=lat, lng=lng, eras=list(eras) or ["1950"])
-    db.add(loc)
-    db.flush()
+    key = (name or sub).strip().lower()
+    if loc is None and seen is not None and key in seen:
+        loc = seen[key]
+    if loc is None and key:
+        loc = _find_location_by_name(db, name or sub)
+    if loc is None:
+        if not name and lat is None:
+            return None
+        if lat is None or lng is None:
+            return None
+        loc = Location(name=name or sub or "Untitled place", cross_street=sub or "", lat=lat, lng=lng, eras=list(eras) or ["1950"])
+        db.add(loc)
+        db.flush()
+    for e in eras:
+        if e not in (loc.eras or []):
+            loc.eras = [*(loc.eras or []), e]
+    if seen is not None and key:
+        seen[key] = loc
     return loc
 
 
@@ -172,16 +200,17 @@ def _publish(db: Session, s: Submission, assocs: list[dict], *, source: str) -> 
     created: list[Story] = []
     color = AVATAR_COLORS[s.id % len(AVATAR_COLORS)]
     targets: list[tuple[Location, float | None, float | None, str]] = []
+    seen: dict[str, Location] = {}  # one pin per distinct new place within this publish
     if assocs:
         for a in assocs:
             loc = _resolve_location(db, location_id=a.get("location_id"), name=a.get("name", ""), sub=a.get("sub", ""),
-                                    lat=a.get("lat"), lng=a.get("lng"), eras=[a["era"]] if a.get("era") else s.eras or [])
+                                    lat=a.get("lat"), lng=a.get("lng"), eras=[a["era"]] if a.get("era") else s.eras or [], seen=seen)
             if loc:
                 targets.append((loc, a["start_s"], a["end_s"], a.get("era") or (s.eras or ["1950"])[0]))
     if not targets:
         for p in s.places or []:
             loc = _resolve_location(db, location_id=p.get("location_id"), name=p.get("name", ""), sub="", lat=p.get("lat"),
-                                    lng=p.get("lng"), eras=s.eras or [])
+                                    lng=p.get("lng"), eras=s.eras or [], seen=seen)
             if loc:
                 targets.append((loc, None, None, (s.eras or ["1950"])[0]))
     if not targets:

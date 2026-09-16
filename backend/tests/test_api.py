@@ -121,3 +121,49 @@ def test_field_capture_publishes_directly(client, admin):
 def test_staff_and_me(client, admin):
     assert client.get("/api/admin/me", headers=admin).json()["role"] == "super-admin"
     assert len(client.get("/api/admin/staff", headers=admin).json()) == 3
+
+
+def _submit(client, name="Tester"):
+    files = {"file": ("clip.webm", io.BytesIO(b"\x1aE\xdf\xa3fake-webm"), "video/webm")}
+    up = client.post("/api/submissions/upload", files=files, data={"method": "recorded", "duration_s": "40"}).json()
+    r = client.post("/api/submissions", json={
+        "upload_id": up["upload_id"], "contributor_name": name, "contributor_email": "t@example.com",
+        "places": [], "eras": ["1950"], "agreed_norms": True,
+    })
+    assert r.status_code == 201, r.text
+    return r.json()["id"]
+
+
+def test_multi_span_approval_to_a_new_place_makes_one_pin(client, admin):
+    """Regression: three spans tagged to the same new place must share one
+    location with three stories, not create three "Raimondi Park" pins."""
+    sid = _submit(client, "Aditi")
+    spans = [{"id": f"d{i}", "start_s": i * 10, "end_s": i * 10 + 9, "location_id": None, "name": "Raimondi Park",
+              "sub": "18th & Wood", "lat": 37.8130, "lng": -122.2990, "era": era, "color": "#0F7B6C"}
+             for i, era in enumerate(["1950", "1965", "1985"])]
+    assert client.put(f"/api/admin/submissions/{sid}/associations", headers=admin, json={"associations": spans}).status_code == 200
+    before = client.get("/api/locations").json()
+    assert not any(p["name"] == "Raimondi Park" for p in before)
+    assert client.post(f"/api/admin/submissions/{sid}/approve", headers=admin, json={}).status_code == 200
+    after = client.get("/api/locations").json()
+    pins = [p for p in after if p["name"] == "Raimondi Park"]
+    assert len(pins) == 1, [p["id"] for p in pins]
+    assert len(after) == len(before) + 1
+    det = client.get(f"/api/locations/{pins[0]['id']}").json()
+    assert sorted(s["era"] for s in det["stories"]) == ["1950", "1965", "1985"]
+    assert det["era_range"] == "~1950–1985"
+
+
+def test_span_naming_an_existing_pin_by_alias_reuses_it(client, admin):
+    """A reviewer typing the name (or alias) of an existing pin, without picking
+    it from the map, attaches to that pin instead of duplicating it."""
+    slim = next(p for p in client.get("/api/locations").json() if p["name"].startswith("Slim"))
+    sid = _submit(client, "Loretta")
+    spans = [{"id": "s1", "start_s": 0, "end_s": 20, "location_id": None, "name": "slim jenkins", "sub": "",
+              "lat": 37.807, "lng": -122.302, "era": "1985", "color": "#0F7B6C"}]
+    assert client.put(f"/api/admin/submissions/{sid}/associations", headers=admin, json={"associations": spans}).status_code == 200
+    before = len(client.get("/api/locations").json())
+    assert client.post(f"/api/admin/submissions/{sid}/approve", headers=admin, json={}).status_code == 200
+    assert len(client.get("/api/locations").json()) == before  # no new pin
+    det = client.get(f"/api/locations/{slim['id']}").json()
+    assert any(s["contributor_name"] == "Loretta" and s["era"] == "1985" for s in det["stories"])
