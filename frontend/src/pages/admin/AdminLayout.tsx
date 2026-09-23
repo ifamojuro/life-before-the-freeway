@@ -36,8 +36,8 @@ export function AdminLogin() {
         <div className="n">LBTF Admin</div>
         <span className="tag">Staff only</span>
         {err && <div className="adm-err">{err}</div>}
-        <div className="adm-field"><label>Email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" /></div>
-        <div className="adm-field"><label>Password</label><input type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="current-password" autoFocus /></div>
+        <div className="adm-field"><label htmlFor="adm-email">Email</label><input id="adm-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" /></div>
+        <div className="adm-field"><label htmlFor="adm-password">Password</label><input id="adm-password" type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="current-password" autoFocus /></div>
         <button type="submit" className="adm-btn primary" style={{ width: "100%" }} disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
         <div className="hint">Seeded accounts: randolph@lbtf.org (super-admin), maya@lbtf.org, jordan@lbtf.org — password <code>admin</code>. Every approve/reject is logged under your name.</div>
       </form>
