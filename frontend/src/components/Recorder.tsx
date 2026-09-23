@@ -22,6 +22,10 @@ export function useRecorder() {
   const chunks = useRef<BlobPart[]>([]);
   const timer = useRef<number | undefined>(undefined);
   const startedAt = useRef(0);
+  // Each camera request gets a number; a stream that arrives after a newer
+  // request (or after unmount) is stopped and ignored, so a late getUserMedia
+  // can't clobber the state or leave the camera on.
+  const startSeq = useRef(0);
   const [state, setState] = useState<"idle" | "ready" | "recording" | "done">("idle");
   const [elapsed, setElapsed] = useState(0);
   const [facing, setFacing] = useState<"user" | "environment">("user");
@@ -34,6 +38,7 @@ export function useRecorder() {
   }, []);
 
   const start = useCallback(async (face = facing) => {
+    const seq = ++startSeq.current;
     setError(null);
     stopStream();
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -42,6 +47,10 @@ export function useRecorder() {
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: face, width: { ideal: 720 }, height: { ideal: 1280 } }, audio: true });
+      if (seq !== startSeq.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -108,7 +117,7 @@ export function useRecorder() {
     if (state === "ready") void start(next);
   }, [facing, state, start]);
 
-  useEffect(() => () => { window.clearInterval(timer.current); stopStream(); }, [stopStream]);
+  useEffect(() => () => { startSeq.current++; window.clearInterval(timer.current); stopStream(); }, [stopStream]);
 
   return { videoRef, state, elapsed, facing, error, recording, start, begin, stop, retake, flip };
 }
