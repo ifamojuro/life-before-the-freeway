@@ -125,6 +125,13 @@ Review the generated file and commit it in the same PR as the model change.
 ## Tests
 
 ```bash
+make test                                   # everything below except e2e, from the repo root
+make e2e                                    # Playwright browser tests in frontend/e2e/ (starts its own servers)
+```
+
+Or one piece at a time:
+
+```bash
 cd backend && make test                     # 9 tests: full contributor → moderation flow, RAG scoping, auth, field capture
 cd frontend && npm test                     # Vitest (jsdom + Testing Library), src/**/*.test.ts(x)
 cd frontend && npm run build                # typecheck + production build
