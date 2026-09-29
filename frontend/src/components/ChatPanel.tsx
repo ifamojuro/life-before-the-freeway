@@ -121,7 +121,7 @@ export function ChatPanel({ chat }: { chat: ReturnType<typeof useArchiveChat> })
         )}
       </div>
       <form className="chat-input" onSubmit={submit}>
-        <input value={input} onChange={(e) => setInput(e.target.value)} onFocus={() => void api.warmChat().catch(() => {})} placeholder={messages.length ? "Ask a follow-up…" : "Ask about a place or a memory…"} aria-label="Your question" />
+        <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={messages.length ? "Ask a follow-up…" : "Ask about a place or a memory…"} aria-label="Your question" />
         <button type="submit" className="chat-send" disabled={busy || !input.trim()} aria-label="Send">↑</button>
       </form>
     </section>

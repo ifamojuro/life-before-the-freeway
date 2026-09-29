@@ -74,21 +74,3 @@ def test_validate_requires_a_model_name(monkeypatch):
     monkeypatch.setattr(config, "LLM_BASE_URL", "http://model.test/v1")
     monkeypatch.setattr(config, "LLM_MODEL", "")
     assert any("LBTF_LLM_MODEL" in p for p in config.validate())
-
-
-def test_warm_is_a_no_op_without_a_model(client):
-    assert client.post("/api/chat/warm").json() == {"warming": False}
-
-
-def test_warm_loads_the_model_at_most_once_a_minute(client, open_model, monkeypatch):
-    respond_with, calls = open_model
-    respond_with(lambda req: httpx.Response(200, request=req, json={}))
-    monkeypatch.setattr(rag, "_last_warm", 0.0)
-    monkeypatch.setattr(rag.time, "monotonic", lambda: 1000.0)
-
-    r = client.post("/api/chat/warm")
-    assert r.status_code == 202 and r.json() == {"warming": True}
-    assert calls[0][1]["json"]["max_tokens"] == 1
-
-    assert client.post("/api/chat/warm").json() == {"warming": False}
-    assert len(calls) == 1

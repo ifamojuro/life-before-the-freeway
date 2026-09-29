@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import random
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -85,11 +85,6 @@ def random_prompt(exclude: int | None = None, db: Session = Depends(get_db)):
         raise HTTPException(404, "No prompts configured")
     p = random.choice(pool)
     return PromptOut(id=p.id, text=p.text)
-
-
-@router.post("/chat/warm", status_code=202)
-def chat_warm(background: BackgroundTasks):
-    return {"warming": rag.schedule_warm(background.add_task)}
 
 
 @router.post("/chat", response_model=ChatOut)
