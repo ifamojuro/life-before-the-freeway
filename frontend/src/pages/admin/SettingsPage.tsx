@@ -16,7 +16,7 @@ export default function SettingsPage() {
         </div>
         <div className="adm-card">
           <h4>Chat answer engine</h4>
-          <p>The public “Ask the archive” chat answers only from the interview corpus. When an <code>ANTHROPIC_API_KEY</code> is configured on the server, answers are composed by Claude constrained to retrieved excerpts; otherwise they are quoted extractively. Either way every answer cites its source stories.</p>
+          <p>The public “Ask the archive” chat answers only from the interview corpus. When an open-weight model (<code>LBTF_LLM_BASE_URL</code>) or an <code>ANTHROPIC_API_KEY</code> is configured on the server, answers are composed by that model, constrained to retrieved excerpts; otherwise, or if the model is unavailable, they are quoted extractively. Either way every answer cites its source stories.</p>
         </div>
       </div>
     </>

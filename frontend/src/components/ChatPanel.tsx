@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
-import type { ChatMessage, Citation } from "../lib/types";
+import type { ChatAnswer, ChatMessage, Citation } from "../lib/types";
 
 export const SUGGESTIONS = [
   "What was on 7th Street?",
@@ -16,7 +16,7 @@ export const SUGGESTIONS = [
 export function useArchiveChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState<"claude" | "extractive" | null>(null);
+  const [mode, setMode] = useState<ChatAnswer["mode"] | null>(null);
 
   const ask = async (q: string) => {
     const question = q.trim();
@@ -87,7 +87,7 @@ export function ChatPanel({ chat }: { chat: ReturnType<typeof useArchiveChat> })
           <h3>Ask the archive</h3>
           <p>Answers come only from the elders we interviewed.</p>
         </div>
-        {mode && <span className="chat-mode" title="How answers are composed">{mode === "claude" ? "AI-composed · interviews only" : "Quoted from interviews"}</span>}
+        {mode && <span className="chat-mode" title="How answers are composed">{mode !== "extractive" ? "AI-composed · interviews only" : "Quoted from interviews"}</span>}
       </div>
       <div className="chat-scroll" ref={scroller}>
         {messages.length === 0 && (

@@ -2,25 +2,31 @@
 
 1. Retrieve: score every published story's transcript + caption against the
    question (BM25-lite over tokens) and keep the top passages.
-2. Compose: if an Anthropic credential is available, ask Claude to answer using
-   only those passages (and to say so when they don't cover the question).
-   Otherwise build an extractive answer from the passages themselves.
+2. Compose: if an open-weight model is configured (LBTF_LLM_BASE_URL), or else
+   an Anthropic credential is available, ask it to answer using only those
+   passages (and to say so when they don't cover the question). Otherwise, or
+   if the model fails, build an extractive answer from the passages themselves.
 3. Cite: every answer carries the stories it drew from, so the UI can render
    "Drawn from these stories" pins that deep-link to the map.
 """
 from __future__ import annotations
 
+import logging
 import math
 import os
 import re
 from collections import Counter
 from dataclasses import dataclass
 
+import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .. import config
 from ..config import CLAUDE_MODEL, USE_CLAUDE
 from ..models import Location, Story
+
+log = logging.getLogger(__name__)
 
 STOP = set(
     "the a an and or of to in on at was were is are be been what where who when how tell me about "
@@ -104,21 +110,22 @@ def _claude_enabled() -> bool:
 SYSTEM = (
     "You are the archive guide for 'Life Before the Freeway', an oral-history project about West Oakland "
     "before, during, and after the I-980 freeway. Answer the visitor's question using ONLY the interview "
-    "excerpts provided. Speak plainly and warmly, in two to four sentences. Attribute memories to the "
-    "residents who shared them (e.g. 'Ms. Carter remembers…'). If the excerpts do not answer the question, "
+    "excerpts provided. Speak plainly and warmly, in two to four sentences. Credit each memory to the "
+    "resident named in that excerpt, and never to anyone else; refer to residents by name, not he or she. "
+    "Stay close to what they actually said. If the excerpts do not answer the question, "
     "say that the recorded interviews don't cover it yet and invite the visitor to leave a story. Never "
     "add outside facts."
 )
 
 
-def _compose_with_claude(question: str, history: list[dict], passages: list[Passage]) -> str | None:
-    try:
-        import anthropic
-    except ImportError:  # pragma: no cover
-        return None
+def _messages(question: str, history: list[dict], passages: list[Passage]) -> list[dict]:
+    # Label every field: smaller open-weight models otherwise misread a
+    # resident's name as a place, or credit one resident's memory to another.
     context = "\n\n".join(
-        f"[{i + 1}] {p.location.name} ({p.location.cross_street}) — {p.story.contributor_name}, "
-        f"{p.story.era_label or p.story.era}:\n{p.story.transcript or p.story.caption}"
+        f"[{i + 1}] Resident speaking: {p.story.contributor_name}\n"
+        f"Place: {p.location.name} ({p.location.cross_street})\n"
+        f"Era: {p.story.era_label or p.story.era}\n"
+        f"What {p.story.contributor_name} said: {p.story.transcript or p.story.caption}"
         for i, p in enumerate(passages)
     )
     messages = [{"role": h["role"], "content": h["content"]} for h in history[-6:]]
@@ -126,6 +133,43 @@ def _compose_with_claude(question: str, history: list[dict], passages: list[Pass
         "role": "user",
         "content": f"Interview excerpts:\n\n{context}\n\nVisitor question: {question}",
     })
+    return messages
+
+
+def _compose_with_open_model(question: str, history: list[dict], passages: list[Passage]) -> str | None:
+    """Ask the OpenAI-compatible server at LBTF_LLM_BASE_URL. None on any failure."""
+    body = {
+        "model": config.LLM_MODEL,
+        "messages": [{"role": "system", "content": SYSTEM}, *_messages(question, history, passages)],
+        "max_tokens": 400,
+        "temperature": 0.3,
+        # Reasoning models (e.g. Qwen 3.x) think at length before a two-sentence
+        # answer; skip that. Verified on Ollama; a server that rejects the option
+        # would fail every request and leave the chat answering extractively.
+        "reasoning_effort": "none",
+    }
+    try:
+        r = httpx.post(
+            f"{config.LLM_BASE_URL}/chat/completions",
+            json=body,
+            headers=config.LLM_HEADERS,
+            timeout=config.LLM_TIMEOUT,
+        )
+        r.raise_for_status()
+        return (r.json()["choices"][0]["message"].get("content") or "").strip() or None
+    except Exception as e:  # malformed replies too: any failure means the quoted answer
+        # Never log the question or excerpts: the model service is where visitor
+        # questions would leak, so the backend shouldn't record them either.
+        log.warning("open-weight model unavailable, answering extractively: %s", type(e).__name__)
+        return None
+
+
+def _compose_with_claude(question: str, history: list[dict], passages: list[Passage]) -> str | None:
+    try:
+        import anthropic
+    except ImportError:  # pragma: no cover
+        return None
+    messages = _messages(question, history, passages)
     try:
         client = anthropic.Anthropic()
         # Server-side refusal fallback (Claude API only): if the primary model
@@ -165,7 +209,13 @@ def _trim(s: str, n: int = 180) -> str:
 
 def answer(db: Session, question: str, history: list[dict]) -> tuple[str, list[Passage], str]:
     passages = retrieve(db, question)
-    if passages and _claude_enabled():
+    # A configured open-weight model never falls back to Claude: the point is
+    # that questions and transcripts stay on infrastructure the project runs.
+    if passages and config.LLM_BASE_URL:
+        text = _compose_with_open_model(question, history, passages)
+        if text:
+            return text, passages, "llm"
+    elif passages and _claude_enabled():
         text = _compose_with_claude(question, history, passages)
         if text:
             return text, passages, "claude"
