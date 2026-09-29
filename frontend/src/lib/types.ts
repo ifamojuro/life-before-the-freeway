@@ -80,7 +80,7 @@ export interface Citation {
 export interface ChatAnswer {
   answer: string;
   citations: Citation[];
-  mode: "claude" | "extractive";
+  mode: "claude" | "llm" | "extractive";
 }
 
 export interface ChatMessage {

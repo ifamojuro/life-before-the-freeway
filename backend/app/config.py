@@ -65,6 +65,20 @@ SITE_PASSWORD = os.environ.get("LBTF_SITE_PASSWORD", "")
 USE_CLAUDE = os.environ.get("LBTF_USE_CLAUDE", "auto")
 CLAUDE_MODEL = os.environ.get("LBTF_CLAUDE_MODEL", "claude-opus-5")
 
+# Open-weight chat model behind an OpenAI-compatible API (Ollama, llama.cpp,
+# vLLM), run on infrastructure the project controls. When LBTF_LLM_BASE_URL is
+# set it composes answers instead of Claude; on timeout or error the chat falls
+# back to the extractive answer. LBTF_LLM_HEADERS carries auth for a proxy in
+# front of the model, as "Name:value,Name:value" (e.g. Modal proxy auth).
+LLM_BASE_URL = os.environ.get("LBTF_LLM_BASE_URL", "").rstrip("/")
+LLM_MODEL = os.environ.get("LBTF_LLM_MODEL", "")
+LLM_TIMEOUT = float(os.environ.get("LBTF_LLM_TIMEOUT", "25"))
+LLM_HEADERS = dict(
+    (name.strip(), value.strip())
+    for name, _, value in (h.partition(":") for h in os.environ.get("LBTF_LLM_HEADERS", "").split(","))
+    if name.strip() and value.strip()
+)
+
 # Transcription backend: "mock" (default, deterministic canned transcript so the
 # full flow is exercisable offline) or "whisper" (requires `openai-whisper`).
 TRANSCRIBER = os.environ.get("LBTF_TRANSCRIBER", "mock")
@@ -102,6 +116,8 @@ def validate() -> list[str]:
             problems.append("LBTF_ADMIN_PASSWORD is required when LBTF_SEED=base")
     if TRANSCRIBER not in ("mock", "whisper"):
         problems.append(f"LBTF_TRANSCRIBER={TRANSCRIBER!r} is not mock or whisper")
+    if LLM_BASE_URL and not LLM_MODEL:
+        problems.append("LBTF_LLM_MODEL is required when LBTF_LLM_BASE_URL is set")
     return problems
 
 
@@ -116,5 +132,6 @@ def describe() -> str:
     host = "sqlite" if IS_SQLITE else (urlparse(DATABASE_URL).hostname or "?")
     return (
         f"config: db={host} seed={SEED} transcriber={TRANSCRIBER} "
-        f"gate={'on' if SITE_PASSWORD else 'OFF'} uploads={UPLOAD_DIR}"
+        f"gate={'on' if SITE_PASSWORD else 'OFF'} uploads={UPLOAD_DIR} "
+        f"llm={LLM_MODEL + '@' + (urlparse(LLM_BASE_URL).hostname or '?') if LLM_BASE_URL else 'off'}"
     )

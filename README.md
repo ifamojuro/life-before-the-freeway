@@ -77,10 +77,15 @@ Review the generated file and commit it in the same PR as the model change.
 ## How the pieces work
 
 - **RAG chat** (`backend/app/services/rag.py`): BM25-style retrieval over the
-  published story transcripts; if `ANTHROPIC_API_KEY` is set the answer is
-  composed by Claude **constrained to the retrieved excerpts** (with server-side
-  refusal fallback), otherwise an extractive answer is built from the same
-  excerpts. Both modes cite source stories; out-of-corpus questions say so.
+  published story transcripts. The answer is composed **only from the retrieved
+  excerpts** by, in order: an open-weight model at `LBTF_LLM_BASE_URL` (any
+  OpenAI-compatible server, e.g. Ollama, run on infrastructure the project
+  controls); Claude, if `ANTHROPIC_API_KEY` is set (with server-side refusal
+  fallback); otherwise an extractive answer built from the same excerpts. If the
+  model is slow or down, the chat falls back to the extractive answer. Every
+  mode cites source stories; out-of-corpus questions say so.
+  To try it locally: `ollama pull qwen3.5:9b`, then run with
+  `LBTF_LLM_BASE_URL=http://localhost:11434/v1 LBTF_LLM_MODEL=qwen3.5:9b`.
 - **Transcription + language flag** (`services/transcription.py`): every upload
   is transcribed and scanned for flagged terms. Default backend is a
   deterministic mock (works offline, exercises the whole flow); set
@@ -109,6 +114,10 @@ Review the generated file and commit it in the same PR as the model change.
 | `ANTHROPIC_API_KEY` | — | enables Claude-composed chat answers |
 | `LBTF_CLAUDE_MODEL` | `claude-opus-5` | chat model |
 | `LBTF_USE_CLAUDE` | `auto` | `1`/`0` to force/disable Claude |
+| `LBTF_LLM_BASE_URL` | — | OpenAI-compatible open-weight model server (e.g. `http://localhost:11434/v1`); when set, it composes chat answers instead of Claude |
+| `LBTF_LLM_MODEL` | — | model name on that server (required with `LBTF_LLM_BASE_URL`) |
+| `LBTF_LLM_TIMEOUT` | `25` | seconds to wait before answering extractively instead |
+| `LBTF_LLM_HEADERS` | — | auth headers for a proxy in front of the model, `Name:value,Name:value` |
 | `LBTF_TRANSCRIBER` | `mock` | `whisper` for real transcription |
 | `LBTF_CORS_ORIGINS` | `http://localhost:5173,…` | dev CORS |
 | `LBTF_SITE_PASSWORD` | — | when set, gate the whole site (SPA + API + /uploads) behind one shared password via HTTP Basic auth; unset = open. `/api/health` stays open. |

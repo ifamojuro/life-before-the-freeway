@@ -94,7 +94,7 @@ class Citation(BaseModel):
 class ChatOut(BaseModel):
     answer: str
     citations: list[Citation]
-    mode: Literal["claude", "extractive"]
+    mode: Literal["claude", "llm", "extractive"]
 
 
 class DetectedPlace(BaseModel):
