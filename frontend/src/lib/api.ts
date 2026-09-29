@@ -56,6 +56,8 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ question, history: history.map((h) => ({ role: h.role, content: h.content })) }),
     }),
+  // Wakes the open-weight model while the visitor types; the server throttles it.
+  warmChat: () => request<{ warming: boolean }>("/api/chat/warm", { method: "POST" }),
 
   // contributor
   upload: (file: Blob, method: "recorded" | "uploaded", durationS?: number, filename = "clip.webm") => {

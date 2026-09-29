@@ -15,6 +15,7 @@ import logging
 import math
 import os
 import re
+import time
 from collections import Counter
 from dataclasses import dataclass
 
@@ -162,6 +163,40 @@ def _compose_with_open_model(question: str, history: list[dict], passages: list[
         # questions would leak, so the backend shouldn't record them either.
         log.warning("open-weight model unavailable, answering extractively: %s", type(e).__name__)
         return None
+
+
+WARM_EVERY_S = 60
+_last_warm = 0.0
+
+
+def schedule_warm(add_task) -> bool:
+    """Wake a scaled-to-zero model before the visitor's first question arrives.
+
+    Called when someone starts typing; at most once a minute, and only when an
+    open-weight model is configured. The request itself runs as a background task.
+    """
+    global _last_warm
+    now = time.monotonic()
+    if not config.LLM_BASE_URL or now - _last_warm < WARM_EVERY_S:
+        return False
+    _last_warm = now
+    add_task(_warm)
+    return True
+
+
+def _warm() -> None:
+    # A one-token completion loads the weights onto the GPU; merely listing
+    # models would start the container but leave the first answer slow.
+    try:
+        httpx.post(
+            f"{config.LLM_BASE_URL}/chat/completions",
+            json={"model": config.LLM_MODEL, "messages": [{"role": "user", "content": "hi"}],
+                  "max_tokens": 1, "reasoning_effort": "none"},
+            headers=config.LLM_HEADERS,
+            timeout=180,
+        )
+    except httpx.HTTPError as e:
+        log.warning("open-weight model warm-up failed: %s", type(e).__name__)
 
 
 def _compose_with_claude(question: str, history: list[dict], passages: list[Passage]) -> str | None:
