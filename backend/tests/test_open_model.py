@@ -50,6 +50,8 @@ def test_answer_comes_from_the_open_model(client, open_model):
     lambda req: httpx.Response(503, request=req),
     lambda req: httpx.Response(200, request=req, json={"choices": [{"message": {"content": ""}}]}),
     lambda req: httpx.Response(200, request=req, json={"error": "no such model"}),
+    lambda req: httpx.Response(200, request=req, json={"choices": None}),
+    lambda req: httpx.Response(200, request=req, json={"choices": [{"message": None}]}),
 ])
 def test_model_failure_falls_back_to_extractive(client, open_model, failure):
     respond_with, _ = open_model

@@ -144,7 +144,8 @@ def _compose_with_open_model(question: str, history: list[dict], passages: list[
         "max_tokens": 400,
         "temperature": 0.3,
         # Reasoning models (e.g. Qwen 3.x) think at length before a two-sentence
-        # answer; skip that. Servers without the option ignore it.
+        # answer; skip that. Verified on Ollama; a server that rejects the option
+        # would fail every request and leave the chat answering extractively.
         "reasoning_effort": "none",
     }
     try:
@@ -156,7 +157,7 @@ def _compose_with_open_model(question: str, history: list[dict], passages: list[
         )
         r.raise_for_status()
         return (r.json()["choices"][0]["message"].get("content") or "").strip() or None
-    except (httpx.HTTPError, KeyError, IndexError, ValueError) as e:
+    except Exception as e:  # malformed replies too: any failure means the quoted answer
         # Never log the question or excerpts: the model service is where visitor
         # questions would leak, so the backend shouldn't record them either.
         log.warning("open-weight model unavailable, answering extractively: %s", type(e).__name__)
@@ -208,6 +209,8 @@ def _trim(s: str, n: int = 180) -> str:
 
 def answer(db: Session, question: str, history: list[dict]) -> tuple[str, list[Passage], str]:
     passages = retrieve(db, question)
+    # A configured open-weight model never falls back to Claude: the point is
+    # that questions and transcripts stay on infrastructure the project runs.
     if passages and config.LLM_BASE_URL:
         text = _compose_with_open_model(question, history, passages)
         if text:
