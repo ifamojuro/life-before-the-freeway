@@ -8,6 +8,12 @@ __pycache__/
 backend/lbtf.db
 backend/uploads/
 
+# e2e test runs (fresh database + uploads each run, Playwright output)
+backend/e2e.db
+backend/e2e-uploads/
+frontend/test-results/
+frontend/playwright-report/
+
 # environment profiles with secrets (the .example is committed)
 backend/.env.staging
 
