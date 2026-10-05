@@ -14,6 +14,7 @@ backend/.env.staging
 # node
 node_modules/
 frontend/dist/
+*.tsbuildinfo
 
 # basemap build cache (large GeoTIFFs; re-downloaded by tools/build_basemaps.py)
 tools/.cache/
