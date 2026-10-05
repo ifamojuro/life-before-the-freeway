@@ -7,6 +7,9 @@ async function signIn(page: Page) {
   await page.getByLabel("Password").fill("admin");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("heading", { name: /Moderation queue/ })).toBeVisible();
+  // The tab counts read 0 until the queue loads, so wait for its cards
+  // before reading them.
+  await expect(page.locator(".qcard").first()).toBeVisible();
 }
 
 function tabCount(page: Page, tab: string) {
