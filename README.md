@@ -98,12 +98,12 @@ Review the generated file and commit it in the same PR as the model change.
   time-span (span → pin → era); with no spans it falls back to whole-video per
   contributor-tagged place. Field capture publishes directly. Everything lands
   in the audit log with reviewer identity + timestamp.
-- **Map**: real historical basemaps — public-domain USGS "Oakland West" quad
-  scans (1949 / 1959-photorevised / 1993), one per era, reprojected to the
-  app's frame by `tools/build_basemaps.py` (see `docs/historical-maps.md`).
-  `MapView` renders them aspect-true with pan + zoom; pins are real lat/lng
-  (`frontend/src/lib/geo.ts`). The stylized grid remains as a fallback if the
-  imagery fails to load.
+- **Map**: Leaflet over two-tone tiles built from whole public-domain USGS
+  topographic sheets (Oakland West and its neighbors; 1949 / 1959 photorevised
+  1968 / 1993) by `tools/build_tiles.py` (see `docs/historical-maps.md`). The
+  tiles are generated, not committed: run the builder for local dev, or point
+  `VITE_MAP_TILES_URL` at where they're hosted. Pins are real lat/lng
+  (`frontend/src/lib/geo.ts`).
 
 ## Env vars (backend)
 

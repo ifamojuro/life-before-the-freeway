@@ -1,16 +1,18 @@
 /**
  * West Oakland map, drawn with Leaflet.
  *
- * Each era's historical basemap (USGS Historical Topographic Map scans, warped
- * to MAP_BOUNDS — see tools/build_basemaps.py) is its own layer, and all three
- * are loaded at once and stacked; switching eras only changes their opacity.
+ * Each era's historical map (two-tone tiles built from whole USGS Historical
+ * Topographic Map sheets — see tools/build_tiles.py) is its own tile layer, and
+ * all three are loaded at once and stacked; switching eras only changes their
+ * opacity. With ?tune, the layers use grayscale tiles colored live by the
+ * MapTone filter instead.
  * Pins are Leaflet markers placed at their real lat/lng. Optional
  * tap-to-place mode is used by the contributor + moderation flows.
  */
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, type ReactNode } from "react";
-import { BASEMAPS, MAP_BOUNDS } from "../lib/geo";
+import { ERA_MAPS, MAP_BOUNDS, MAP_COVERAGE, TILES_URL } from "../lib/geo";
 import type { EraKey } from "../lib/types";
 import { cx } from "../lib/util";
 
@@ -37,7 +39,10 @@ interface Props {
   children?: ReactNode;
 }
 
-const BOUNDS = L.latLngBounds([MAP_BOUNDS.south, MAP_BOUNDS.west], [MAP_BOUNDS.north, MAP_BOUNDS.east]);
+const START = L.latLngBounds([MAP_BOUNDS.south, MAP_BOUNDS.west], [MAP_BOUNDS.north, MAP_BOUNDS.east]);
+const COVERAGE = L.latLngBounds([MAP_COVERAGE.south, MAP_COVERAGE.west], [MAP_COVERAGE.north, MAP_COVERAGE.east]);
+const TUNING = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("tune");
+const BLANK = "data:image/gif;base64,R0lGODlhAQABAAAAACw="; // tiles that are all paper aren't built
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -59,25 +64,28 @@ function pinIcon(p: MapPin) {
 export function MapView({ era = "1965", pins = [], onPinClick, onTap, className, zoomable = false, scaleLabel, children }: Props) {
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const eraLayers = useRef<Partial<Record<string, L.ImageOverlay>>>({});
+  const eraLayers = useRef<Partial<Record<string, L.TileLayer>>>({});
   const pinLayer = useRef<L.LayerGroup | null>(null);
   // Leaflet handlers are bound once; read the latest callbacks through a ref.
   const handlers = useRef({ onPinClick, onTap });
   handlers.current = { onPinClick, onTap };
 
   useEffect(() => {
-    const map = L.map(elRef.current!, { zoomControl: false, attributionControl: false, zoomSnap: 0.25, maxBounds: BOUNDS, maxBoundsViscosity: 1 });
-    // Never zoom out past the point where the basemap stops covering the view.
-    const fitMinZoom = () => map.setMinZoom(map.getBoundsZoom(BOUNDS, true));
+    const map = L.map(elRef.current!, { zoomControl: false, attributionControl: false, zoomSnap: 0.25, maxZoom: 18, maxBounds: COVERAGE, maxBoundsViscosity: 1 });
+    // Never zoom out past the point where the historical maps stop covering the view.
+    const fitMinZoom = () => map.setMinZoom(map.getBoundsZoom(COVERAGE, true));
     fitMinZoom();
-    map.fitBounds(BOUNDS);
+    map.fitBounds(START);
     map.on("resize", fitMinZoom);
-    for (const [key, b] of Object.entries(BASEMAPS)) {
-      eraLayers.current[key] = L.imageOverlay(b.url, BOUNDS, { opacity: 0, alt: `Historical map of West Oakland, ${key} era (${b.credit})` }).addTo(map);
+    const base = TUNING ? "/tiles-gray" : TILES_URL;
+    for (const key of Object.keys(ERA_MAPS)) {
+      eraLayers.current[key] = L.tileLayer(`${base}/${key}/{z}/{x}/{y}.png`, {
+        bounds: COVERAGE, minNativeZoom: MAP_COVERAGE.minZoom, maxNativeZoom: MAP_COVERAGE.maxNativeZoom, opacity: 0, errorTileUrl: BLANK, keepBuffer: 4,
+      }).addTo(map);
     }
     pinLayer.current = L.layerGroup().addTo(map);
     map.on("click", (e: L.LeafletMouseEvent) => {
-      if (BOUNDS.contains(e.latlng)) handlers.current.onTap?.({ lat: e.latlng.lat, lng: e.latlng.lng });
+      if (COVERAGE.contains(e.latlng)) handlers.current.onTap?.({ lat: e.latlng.lat, lng: e.latlng.lng });
     });
     mapRef.current = map;
     return () => { map.remove(); mapRef.current = null; };
@@ -100,9 +108,9 @@ export function MapView({ era = "1965", pins = [], onPinClick, onTap, className,
     }
   }, [pinsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const credit = BASEMAPS[era]?.credit;
+  const credit = ERA_MAPS[era]?.credit;
   return (
-    <div className={cx("map-surface", onTap && "tappable", className)}>
+    <div className={cx("map-surface", onTap && "tappable", TUNING && "tuning", className)}>
       {/* Positioned inline: Leaflet forces position: relative (and so zero height) if it starts before the CSS has applied. */}
       <div ref={elRef} className="map-leaflet" style={{ position: "absolute", inset: 0 }} role={onTap ? "button" : undefined} aria-label={onTap ? "Tap the map to place a pin" : "Map of West Oakland"} />
       {children}
