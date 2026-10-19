@@ -11,7 +11,7 @@ It also writes frontend/src/lib/mapCoverage.json (the area the tiles cover),
 which the map uses to stop panning and zooming out at the edge.
 
 Usage:  python3 -m venv tools/.venv && tools/.venv/bin/pip install rasterio pillow numpy
-        tools/.venv/bin/python tools/build_tiles.py [--out DIR] [--eras 1950,1965,1985]
+        tools/.venv/bin/python tools/build_tiles.py [--out DIR] [--eras 1950,1965,1985] [--gray]
 """
 from __future__ import annotations
 
@@ -71,12 +71,14 @@ def neatline(quad: str) -> dict:
     return {"type": "Polygon", "coordinates": [ring]}
 
 
-def tone_ramp(levels: int):
+def tone_ramp(levels: int, gray: bool = False):
     """Gray (0-255) -> tone (0 = ink, 255 = paper), and a palette of `levels` steps from ink to paper.
 
     Same black/white/gamma math as MapTone.tsx. Clamping at the black and white
     points and using few steps drops scan noise, which keeps the PNGs small.
     """
+    if gray:  # for tuning: plain grayscale, colored live in the browser (?tune)
+        return np.arange(256, dtype=np.uint8), np.repeat(np.rint(np.linspace(0, 255, levels)), 3).astype(np.uint8).tolist()
     hexrgb = lambda h: np.array([int(h[i:i + 2], 16) for i in (1, 3, 5)], float)
     ink, paper = hexrgb(TONE["ink"]), hexrgb(TONE["paper"])
     g = np.arange(256) / 255
@@ -138,8 +140,8 @@ def mosaic(sheets, xr, yr):
     return gray
 
 
-def write_tiles(gray, xr, yr, out: Path, levels: int) -> int:
-    tone, palette = tone_ramp(levels)
+def write_tiles(gray, xr, yr, out: Path, levels: int, gray_tiles: bool = False) -> int:
+    tone, palette = tone_ramp(levels, gray_tiles)
     toned = tone[gray]  # tone before downsampling, so thin lines still darken low zooms
     n = 0
     for z in range(MAX_Z, MIN_Z - 1, -1):
@@ -168,16 +170,20 @@ def write_tiles(gray, xr, yr, out: Path, levels: int) -> int:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--out", type=Path, default=ROOT / "frontend/public/tiles")
+    ap.add_argument("--out", type=Path)
     ap.add_argument("--eras", default=",".join(ERAS))
     ap.add_argument("--levels", type=int, default=16, help="tone steps from ink to paper")
+    ap.add_argument("--gray", action="store_true", help="grayscale tiles for tuning the style live with ?tune")
     args = ap.parse_args()
+    if args.gray:
+        args.levels = 256
+    args.out = args.out or ROOT / "frontend/public" / ("tiles-gray" if args.gray else "tiles")
     quads = sorted({q for sheets in ERAS.values() for q, _, _ in sheets})
     xr, yr, bounds = tile_range(quads, MAX_Z)
     for era in args.eras.split(","):
         print(f"[{era}]")
         gray = mosaic(ERAS[era], xr, yr)
-        n = write_tiles(gray, xr, yr, args.out / era, args.levels)
+        n = write_tiles(gray, xr, yr, args.out / era, args.levels, args.gray)
         size = sum(p.stat().st_size for p in (args.out / era).rglob("*.png"))
         print(f"  {n} tiles, {size / 1e6:.0f} MB -> {args.out / era}")
     west, south, east, north = (round(v, 5) for v in bounds)

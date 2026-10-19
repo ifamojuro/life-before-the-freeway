@@ -3,9 +3,10 @@
  * mapped from ink (dark) to paper (light), so all eras read as one printed
  * archive. Settings live in lib/mapTone.json.
  *
- * This is the in-browser prototype: an SVG filter on the map's image layers.
- * Open any map page with ?tune to get sliders, then paste the copied settings
- * into mapTone.json.
+ * The tiles have the style baked in (tools/build_tiles.py). To tune it, build
+ * grayscale tiles with `build_tiles.py --gray`, open any map page with ?tune:
+ * the map colors those tiles live with this SVG filter and shows sliders.
+ * Paste the copied settings into mapTone.json and re-run the builder.
  */
 import { useState, useSyncExternalStore } from "react";
 import defaults from "../lib/mapTone.json";

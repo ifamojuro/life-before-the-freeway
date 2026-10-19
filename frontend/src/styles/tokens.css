@@ -218,8 +218,8 @@ video {
 .map-leaflet { position: absolute; inset: 0; z-index: 0; background: var(--off); font: inherit; }
 .map-surface.tappable .map-leaflet { cursor: crosshair; }
 .map-pin-icon { background: none; border: none; }
-/* Two-tone prototype: see components/MapTone.tsx. Pins sit in another pane and keep their colors. */
-.map-leaflet .leaflet-overlay-pane, .map-leaflet .leaflet-tile-pane { filter: url(#map-two-tone); }
+/* ?tune: grayscale tiles colored live (components/MapTone.tsx). Normal tiles have the style baked in. */
+.map-surface.tuning .leaflet-tile-pane { filter: url(#map-two-tone); }
 .tone-tuner {
   position: fixed; left: 12px; bottom: 12px; z-index: 1000; display: flex; flex-direction: column; gap: 6px; width: 220px;
   background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-family: var(--mono); font-size: 11px;
