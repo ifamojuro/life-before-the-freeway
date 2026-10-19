@@ -13,6 +13,14 @@ def test_pins_and_era_filter(client):
     assert 0 < len(p1985) < len(pins)
 
 
+def test_era_filter_follows_story_eras(client):
+    """A pin shows in an era only if it has a story about that era, and counts only those (041)."""
+    for era in ("1950", "1965", "1985"):
+        for pin in client.get("/api/locations", params={"era": era}).json():
+            stories = client.get(f"/api/locations/{pin['id']}").json()["stories"]
+            assert pin["story_count"] == sum(s["era"] == era for s in stories) > 0
+
+
 def test_location_detail_and_comment(client):
     pins = client.get("/api/locations").json()
     slim = next(p for p in pins if p["name"].startswith("Slim"))

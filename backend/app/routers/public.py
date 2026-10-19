@@ -24,14 +24,17 @@ def eras():
 
 @router.get("/locations", response_model=list[LocationPin])
 def list_locations(era: str | None = Query(default=None), db: Session = Depends(get_db)):
-    counts = dict(db.execute(select(Story.location_id, func.count(Story.id)).group_by(Story.location_id)).all())
+    # Filter and count by the stories' own eras: a place's tagged eras can include
+    # eras none of its stories are about, and its pin shouldn't show there.
+    q = select(Story.location_id, func.count(Story.id)).group_by(Story.location_id)
+    if era:
+        q = q.where(Story.era == era)
+    counts = dict(db.execute(q).all())
     out = []
     for loc in db.execute(select(Location).order_by(Location.id)).scalars():
         n = counts.get(loc.id, 0)
         if n == 0:
-            continue  # pins only exist for places with published stories
-        if era and era not in (loc.eras or []):
-            continue
+            continue  # pins only exist for places with published stories (in this era)
         out.append(LocationPin(id=loc.id, name=loc.name, cross_street=loc.cross_street, lat=loc.lat, lng=loc.lng,
                                eras=loc.eras or [], story_count=n))
     return out
