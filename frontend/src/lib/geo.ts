@@ -9,12 +9,16 @@ import coverage from "./mapCoverage.json";
 
 export const MAP_COVERAGE = coverage;
 
-/** The old fixed frame around the neighborhood: the map's first view. */
-export const MAP_BOUNDS = {
-  north: 37.8215,
-  south: 37.7955,
-  west: -122.3045,
-  east: -122.268,
+/**
+ * The map's first view: centered on the I-980 corridor (37.8131, -122.2738, the
+ * middle of I-980 from I-880 to the MacArthur Maze in OpenStreetMap), wide
+ * enough to take in West Oakland.
+ */
+export const START_VIEW = {
+  north: 37.8271,
+  south: 37.7991,
+  west: -122.3048,
+  east: -122.2428,
 };
 
 /**
