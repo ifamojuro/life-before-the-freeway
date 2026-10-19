@@ -129,13 +129,24 @@ def mosaic(sheets, xr, yr):
         with rasterio.open(fetch(quad, sid, year)) as src:
             rgb = src.read([1, 2, 3]).astype(np.float32)  # scans are RGB; a paletted one would need expanding first
             g = flatten(np.clip(0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2], 0, 255).astype(np.uint8))
-            inside = rasterize([transform_geom("EPSG:4267", src.crs, neatline(quad))], out_shape=g.shape, transform=src.transform)
+            inside = rasterize([transform_geom("EPSG:4267", src.crs, neatline(quad))], out_shape=g.shape, transform=src.transform, dtype=np.uint8)
+            # Drop the printed neatline (~2 px): each sheet prints its own, so it would show at every seam.
+            inside = np.asarray(Image.fromarray(inside).filter(ImageFilter.MinFilter(7)))
             sg, sm = np.full_like(gray, 255), np.zeros_like(cover)
             kw = dict(src_transform=src.transform, src_crs=src.crs, dst_transform=dst_t, dst_crs="EPSG:3857")
             reproject(g, sg, resampling=Resampling.bilinear, **kw)
             reproject(inside, sm, resampling=Resampling.nearest, **kw)
         gray[sm == 1] = sg[sm == 1]
         cover |= sm
+    # Close the few-pixel gaps left at the seams with the nearest map pixels on either side.
+    for _ in range(4):
+        grow = np.zeros_like(cover)
+        for axis, step in ((0, 1), (0, -1), (1, 1), (1, -1)):
+            nb, nc = np.roll(gray, step, axis), np.roll(cover, step, axis)
+            take = (cover == 0) & (grow == 0) & (nc == 1)
+            gray[take] = nb[take]
+            grow |= take
+        cover |= grow
     gray[cover == 0] = 255  # outside every sheet: paper
     return gray
 

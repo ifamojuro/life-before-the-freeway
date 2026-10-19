@@ -218,6 +218,9 @@ video {
 .map-leaflet { position: absolute; inset: 0; z-index: 0; background: var(--off); font: inherit; }
 .map-surface.tappable .map-leaflet { cursor: crosshair; }
 .map-pin-icon { background: none; border: none; }
+/* At fractional zoom, rounded tile positions leave hairline gaps. Our tiles are opaque, so overlap them by a pixel
+   instead of Leaflet's plus-lighter blend (which brightens any overlap). */
+.map-leaflet img.leaflet-tile { mix-blend-mode: normal; width: 257px !important; height: 257px !important; }
 /* ?tune: grayscale tiles colored live (components/MapTone.tsx). Normal tiles have the style baked in. */
 .map-surface.tuning .leaflet-tile-pane { filter: url(#map-two-tone); }
 .tone-tuner {
@@ -226,6 +229,21 @@ video {
 }
 .tone-tuner label { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .tone-tuner input[type="range"] { width: 110px; }
+/* compass + scale bar (Leaflet controls). --map-inset-b lifts them above whatever covers the map's bottom (the mobile sheet). */
+.map-leaflet .leaflet-bottom { bottom: var(--map-inset-b, 0px); }
+.map-surface.has-label .leaflet-bottom.leaflet-left { margin-bottom: 26px; }
+.map-leaflet .leaflet-control-scale { margin: 0 0 8px 16px; }
+.map-leaflet .leaflet-control-scale-line {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.04em; color: var(--night); line-height: 1.4;
+  background: rgba(251, 250, 245, 0.85); border: 1.5px solid var(--night); border-top: none; padding: 0 5px;
+}
+.map-leaflet .leaflet-control-scale-line:not(:first-child) { border-top: 1.5px solid var(--night); border-bottom: none; margin-top: -1.5px; }
+.map-compass {
+  margin: 0 0 6px 16px !important; width: 30px; height: 30px; border-radius: 50%; background: rgba(251, 250, 245, 0.9); border: 1px solid var(--line);
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; font-family: var(--mono); font-size: 9px; color: var(--night); position: relative;
+}
+.map-compass b { margin-top: 2px; font-weight: 600; }
+.map-compass::after { content: ""; position: absolute; top: 13px; border: 5px solid transparent; border-bottom: 9px solid var(--night); border-top: none; }
 .map-attrib {
   position: absolute; right: 60px; bottom: 12px; z-index: 3; pointer-events: none;
   font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--slate);

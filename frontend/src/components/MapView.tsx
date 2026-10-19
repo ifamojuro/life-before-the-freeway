@@ -87,7 +87,12 @@ export function MapView({ era = "1965", pins = [], onPinClick, onTap, className,
     fitMinZoom();
     const saved = savedView(persistKey);
     if (saved) map.setView([saved.lat, saved.lng], saved.zoom);
-    else map.setView(START.getCenter(), Math.max(START_MIN_ZOOM, map.getBoundsZoom(START))); // phones: don't shrink West Oakland to a sliver
+    else {
+      map.setView(START.getCenter(), Math.max(START_MIN_ZOOM, map.getBoundsZoom(START))); // phones: don't shrink West Oakland to a sliver
+      // Center in the part of the map that isn't covered (by the mobile sheet).
+      const inset = parseFloat(getComputedStyle(elRef.current!).getPropertyValue("--map-inset-b")) || 0;
+      if (inset) map.panBy([0, inset / 2], { animate: false });
+    }
     map.on("resize", fitMinZoom);
     if (persistKey) {
       map.on("moveend", () => {
@@ -101,6 +106,11 @@ export function MapView({ era = "1965", pins = [], onPinClick, onTap, className,
         bounds: COVERAGE, minNativeZoom: MAP_COVERAGE.minZoom, maxNativeZoom: MAP_COVERAGE.maxNativeZoom, opacity: 0, errorTileUrl: BLANK, keepBuffer: 4,
       }).addTo(map);
     }
+    // Bottom-left stack: compass above a metric + imperial scale bar. The map never rotates, so north is always up.
+    L.control.scale({ position: "bottomleft", maxWidth: 110 }).addTo(map);
+    const compass = new L.Control({ position: "bottomleft" });
+    compass.onAdd = () => Object.assign(L.DomUtil.create("div", "map-compass"), { innerHTML: "<b>N</b>", role: "img", ariaLabel: "North is up" });
+    compass.addTo(map);
     pinLayer.current = L.layerGroup().addTo(map);
     map.on("click", (e: L.LeafletMouseEvent) => {
       if (COVERAGE.contains(e.latlng)) handlers.current.onTap?.({ lat: e.latlng.lat, lng: e.latlng.lng });
@@ -131,7 +141,7 @@ export function MapView({ era = "1965", pins = [], onPinClick, onTap, className,
 
   const credit = ERA_MAPS[era]?.credit;
   return (
-    <div className={cx("map-surface", onTap && "tappable", TUNING && "tuning", className)}>
+    <div className={cx("map-surface", onTap && "tappable", TUNING && "tuning", scaleLabel && "has-label", className)}>
       {/* Positioned inline: Leaflet forces position: relative (and so zero height) if it starts before the CSS has applied. */}
       <div ref={elRef} className="map-leaflet" style={{ position: "absolute", inset: 0 }} role={onTap ? "button" : undefined} aria-label={onTap ? "Tap the map to place a pin" : "Map of West Oakland"} />
       {children}

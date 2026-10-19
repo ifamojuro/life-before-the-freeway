@@ -3,7 +3,7 @@
  * as a draggable bottom sheet (collapsed → expanded), FAB to leave a story,
  * and the centered first-visit card.
  */
-import { useEffect, useRef, useState, type FormEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppHeader } from "../../components/AppHeader";
 import { CitationList, SUGGESTIONS, useArchiveChat } from "../../components/ChatPanel";
@@ -81,7 +81,7 @@ export function HomeMobile({ era, setEra, pins, error }: ReturnType<typeof useHo
   return (
     <div className="m1">
       <AppHeader />
-      <div className="m1-map" ref={mapRef}>
+      <div className="m1-map" ref={mapRef} style={{ "--map-inset-b": `${sheetH}px` } as CSSProperties}>
         <MapView
           className="map-fill"
           persistKey="home"
