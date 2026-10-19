@@ -212,53 +212,16 @@ video {
 }
 .pin:hover .pin-label, .pin.active .pin-label { opacity: 1; }
 
-/* ---- stylized map surface ---- */
-.map-surface {
-  position: relative; overflow: hidden; background: radial-gradient(circle at 30% 35%, rgba(29, 158, 117, 0.1), transparent 60%), var(--mist);
-  user-select: none;
-}
-.map-surface.tappable { cursor: crosshair; }
-.map-surface { touch-action: none; }
+/* ---- map surface (Leaflet) ---- */
+.map-surface { position: relative; overflow: hidden; background: var(--off); user-select: none; }
 .map-fill { position: absolute; inset: 0; }
-.map-plane { position: absolute; }
-.map-photo {
-  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill;
-  user-select: none; -webkit-user-drag: none; filter: saturate(0.92);
-}
+.map-leaflet { position: absolute; inset: 0; z-index: 0; background: var(--off); font: inherit; }
+.map-surface.tappable .map-leaflet { cursor: crosshair; }
+.map-pin-icon { background: none; border: none; }
 .map-attrib {
   position: absolute; right: 60px; bottom: 12px; z-index: 3; pointer-events: none;
   font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--slate);
   background: rgba(251, 250, 245, 0.85); padding: 3px 7px; border-radius: 4px; border: 1px solid var(--line-soft);
-}
-.map-grid {
-  position: absolute; inset: 0;
-  background-image: linear-gradient(rgba(13, 27, 42, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(13, 27, 42, 0.05) 1px, transparent 1px);
-  background-size: 46px 46px; pointer-events: none;
-}
-.map-roads { position: absolute; inset: 0; pointer-events: none; }
-.road { position: absolute; background: rgba(251, 250, 245, 0.9); border-top: 1px dashed var(--line-soft); border-bottom: 1px dashed var(--line-soft); }
-.road.v { border-top: none; border-bottom: none; border-left: 1px dashed var(--line-soft); border-right: 1px dashed var(--line-soft); }
-.road .rname {
-  position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--slate); opacity: 0.7;
-}
-.road.v .rname { left: 50%; top: 12px; transform: translateX(-50%) rotate(90deg); transform-origin: center; white-space: nowrap; }
-.freeway-scar {
-  position: absolute; left: -4%; top: 60%; width: 108%; height: 38px; pointer-events: none;
-  background: repeating-linear-gradient(135deg, rgba(180, 35, 31, 0.16), rgba(180, 35, 31, 0.16) 9px, rgba(180, 35, 31, 0.06) 9px, rgba(180, 35, 31, 0.06) 18px);
-  border-top: 1.5px solid rgba(180, 35, 31, 0.4); border-bottom: 1.5px solid rgba(180, 35, 31, 0.4); transform: rotate(-7deg);
-  display: flex; align-items: center; justify-content: flex-end; padding-right: 20px; transition: opacity 0.3s, background 0.3s;
-}
-.freeway-scar span {
-  font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: #8f1c19; background: rgba(251, 250, 245, 0.85); padding: 2px 6px; border-radius: 3px;
-}
-.freeway-scar.era-1950 { opacity: 0; }
-.freeway-scar.era-1985 {
-  background: repeating-linear-gradient(90deg, #3a4650, #3a4650 18px, #4a5560 18px, #4a5560 36px); border-color: #16202b; height: 30px;
-}
-.freeway-scar.era-1985 span { color: #fff; background: #16202b; }
-.map-taken {
-  position: absolute; pointer-events: none; background: repeating-linear-gradient(45deg, rgba(180, 35, 31, 0.08), rgba(180, 35, 31, 0.08) 4px, transparent 4px, transparent 10px);
-  border: 1px dashed rgba(180, 35, 31, 0.35); border-radius: 3px; transition: opacity 0.3s;
 }
 .map-scale {
   position: absolute; left: 16px; bottom: 16px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; color: var(--slate);
@@ -272,7 +235,6 @@ video {
 }
 .map-zoom button:last-child { border-bottom: none; }
 .map-zoom button:hover { background: var(--mist); }
-.map-inner { position: absolute; inset: 0; transform-origin: center center; transition: transform 0.25s ease; }
 
 /* era control (desktop floating card) */
 .map-overlay-ctrl {
