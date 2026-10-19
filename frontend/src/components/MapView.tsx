@@ -103,7 +103,8 @@ export function MapView({ era = "1965", pins = [], onPinClick, onTap, className,
   const credit = BASEMAPS[era]?.credit;
   return (
     <div className={cx("map-surface", onTap && "tappable", className)}>
-      <div ref={elRef} className="map-leaflet" role={onTap ? "button" : undefined} aria-label={onTap ? "Tap the map to place a pin" : "Map of West Oakland"} />
+      {/* Positioned inline: Leaflet forces position: relative (and so zero height) if it starts before the CSS has applied. */}
+      <div ref={elRef} className="map-leaflet" style={{ position: "absolute", inset: 0 }} role={onTap ? "button" : undefined} aria-label={onTap ? "Tap the map to place a pin" : "Map of West Oakland"} />
       {children}
       {credit && <div className="map-attrib">{credit} · public domain</div>}
       {scaleLabel && <div className="map-scale">{scaleLabel}</div>}
