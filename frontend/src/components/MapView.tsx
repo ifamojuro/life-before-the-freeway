@@ -12,7 +12,7 @@
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, type ReactNode } from "react";
-import { ERA_MAPS, MAP_BOUNDS, MAP_COVERAGE, TILES_URL } from "../lib/geo";
+import { ERA_MAPS, MAP_COVERAGE, START_VIEW, TILES_URL } from "../lib/geo";
 import type { EraKey } from "../lib/types";
 import { cx } from "../lib/util";
 
@@ -36,10 +36,20 @@ interface Props {
   className?: string;
   zoomable?: boolean;
   scaleLabel?: string;
+  /** Remember center and zoom for the session under this key (e.g. across opening a story). */
+  persistKey?: string;
   children?: ReactNode;
 }
 
-const START = L.latLngBounds([MAP_BOUNDS.south, MAP_BOUNDS.west], [MAP_BOUNDS.north, MAP_BOUNDS.east]);
+type View = { lat: number; lng: number; zoom: number };
+
+function savedView(key?: string): View | null {
+  if (!key) return null;
+  try { return JSON.parse(sessionStorage.getItem(`lbtf.map.${key}`) ?? "null"); } catch { return null; }
+}
+
+const START = L.latLngBounds([START_VIEW.south, START_VIEW.west], [START_VIEW.north, START_VIEW.east]);
+const START_MIN_ZOOM = 13.5;
 const COVERAGE = L.latLngBounds([MAP_COVERAGE.south, MAP_COVERAGE.west], [MAP_COVERAGE.north, MAP_COVERAGE.east]);
 const TUNING = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("tune");
 const BLANK = "data:image/gif;base64,R0lGODlhAQABAAAAACw="; // tiles that are all paper aren't built
@@ -61,7 +71,7 @@ function pinIcon(p: MapPin) {
   });
 }
 
-export function MapView({ era = "1965", pins = [], onPinClick, onTap, className, zoomable = false, scaleLabel, children }: Props) {
+export function MapView({ era = "1965", pins = [], onPinClick, onTap, className, zoomable = false, scaleLabel, persistKey, children }: Props) {
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const eraLayers = useRef<Partial<Record<string, L.TileLayer>>>({});
@@ -75,8 +85,16 @@ export function MapView({ era = "1965", pins = [], onPinClick, onTap, className,
     // Never zoom out past the point where the historical maps stop covering the view.
     const fitMinZoom = () => map.setMinZoom(map.getBoundsZoom(COVERAGE, true));
     fitMinZoom();
-    map.fitBounds(START);
+    const saved = savedView(persistKey);
+    if (saved) map.setView([saved.lat, saved.lng], saved.zoom);
+    else map.setView(START.getCenter(), Math.max(START_MIN_ZOOM, map.getBoundsZoom(START))); // phones: don't shrink West Oakland to a sliver
     map.on("resize", fitMinZoom);
+    if (persistKey) {
+      map.on("moveend", () => {
+        const c = map.getCenter();
+        try { sessionStorage.setItem(`lbtf.map.${persistKey}`, JSON.stringify({ lat: c.lat, lng: c.lng, zoom: map.getZoom() })); } catch { /* ignore */ }
+      });
+    }
     const base = TUNING ? "/tiles-gray" : TILES_URL;
     for (const key of Object.keys(ERA_MAPS)) {
       eraLayers.current[key] = L.tileLayer(`${base}/${key}/{z}/{x}/{y}.png`, {
@@ -87,9 +105,12 @@ export function MapView({ era = "1965", pins = [], onPinClick, onTap, className,
     map.on("click", (e: L.LeafletMouseEvent) => {
       if (COVERAGE.contains(e.latlng)) handlers.current.onTap?.({ lat: e.latlng.lat, lng: e.latlng.lng });
     });
+    // Leaflet only watches the window; also follow the container (layout shifts, the mobile sheet).
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    ro.observe(elRef.current!);
     mapRef.current = map;
-    return () => { map.remove(); mapRef.current = null; };
-  }, []);
+    return () => { ro.disconnect(); map.remove(); mapRef.current = null; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // All eras stay loaded; switching is an opacity change (room for a transition later).
   useEffect(() => {
