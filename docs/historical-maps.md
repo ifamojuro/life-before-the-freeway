@@ -132,3 +132,44 @@ sample archive; real submissions get moderator-placed pins anyway. The 1965
 slot uses a photorevised printing whose exact revision year should be read off
 the map collar in topoView before public launch (it's cited on-screen as
 "USGS 1959 (photorev.)").
+
+---
+
+## Tiles from the full sheets (Oct 2026)
+
+`tools/build_tiles.py` replaces the single clipped image per era with XYZ map
+tiles built from **whole sheets**: Oakland West plus Oakland East, Richmond and
+Briones Valley (a 2 × 2 block, about 22 × 28 km, from Alameda to Richmond and
+the Berkeley hills). Each sheet is clipped to its neatline (7.5′ corners,
+NAD27) so the collars and legends don't overlap, shifted to WGS84 with the
+NAD27 grid (~95 m here), and mosaicked at zoom 16 (~1.9 m/px; the scans are
+~2 m/px). The map overzooms past 16.
+
+**Printings per era.** The years come from each scan's metadata (TNM products
+API → `vendorMetaUrl`: imprint, aerial photo and photo-revision years).
+
+| Era | Oakland West | Oakland East | Richmond | Briones Valley |
+|---|---|---|---|---|
+| ~1950 | 1949 (293623) | 1949 (293613) | 1949 (294669) | 1949 (288607) |
+| 1965 | 1959, photorev. **1968** (293626) | 1959, photorev. 1968 (293616) | 1959, photorev. 1968 (294672) | 1959, photorev. 1968 (288610) |
+| 1985 | 1993 (102315) | **1997** (102314) | 1993 (294665) | 1993 (300007) |
+
+Where the years don't line up:
+- **1965:** the old basemap used scan 293621, whose metadata says photorevised
+  **1973**, printed 1975, so its purple overprint showed 1973 changes. Every
+  sheet has a 1968 photorevision, the closest to 1965, so all four now use it.
+- **1985:** no edition is from the 1980s. The 1993 editions show I-980 open
+  (1985). Oakland East has no 1993 edition; its 1997 edition is built from the
+  same 1993 aerial photos. (A 1980 photorevision exists for all four, but it
+  predates the freeway's opening.)
+- **~1950:** all four are 1949 editions from 1946 aerial photos.
+
+**Two-tone style.** Each sheet is turned to grayscale, its area tints are
+divided out (the 1993 sheets print urban areas in gray, Richmond 1993 doesn't,
+the older ones use pink; without this the sheet edges show as seams), then
+gray maps to ink → paper with the black point, white point and gamma in
+`frontend/src/lib/mapTone.json`. Tiles are 16-step palette PNGs, about
+50 MB and 3,500 tiles per era.
+
+To change the colors: tune with `?tune` on any map page, paste the copied
+settings into `mapTone.json`, and re-run the builder.
