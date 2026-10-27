@@ -13,10 +13,28 @@ export const SUGGESTIONS = [
   "Where were the three banks?",
 ];
 
+// Kept in sessionStorage so the conversation survives opening a cited story
+// (which unmounts the home page) and coming back to ask a follow-up.
+const CHAT_KEY = "lbtf.chat";
+
+function loadChat(): { messages: ChatMessage[]; mode: ChatAnswer["mode"] | null } {
+  try {
+    const s = JSON.parse(sessionStorage.getItem(CHAT_KEY) ?? "null");
+    if (s && Array.isArray(s.messages)) return { messages: s.messages, mode: s.mode ?? null };
+  } catch { /* storage blocked or data damaged: start empty */ }
+  return { messages: [], mode: null };
+}
+
 export function useArchiveChat() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadChat().messages);
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState<ChatAnswer["mode"] | null>(null);
+  const [mode, setMode] = useState<ChatAnswer["mode"] | null>(() => loadChat().mode);
+
+  useEffect(() => {
+    // A question still loading can't be answered once the page is left, so don't save it.
+    const done = messages[messages.length - 1]?.pending ? messages.slice(0, -2) : messages;
+    try { sessionStorage.setItem(CHAT_KEY, JSON.stringify({ messages: done, mode })); } catch { /* ignore */ }
+  }, [messages, mode]);
 
   const ask = async (q: string) => {
     const question = q.trim();
