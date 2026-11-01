@@ -2,7 +2,7 @@
  * "Ask the archive" — RAG-scoped chat. Shared by the desktop pane and the
  * mobile sheet; the `compact` flag switches to the sheet's smaller styles.
  */
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import type { ChatAnswer, ChatMessage, Citation } from "../lib/types";
@@ -13,8 +13,7 @@ export const SUGGESTIONS = [
   "Where were the three banks?",
 ];
 
-// Kept in sessionStorage so the conversation survives opening a cited story
-// (which unmounts the home page) and coming back to ask a follow-up.
+// Kept in sessionStorage so the conversation also survives a page refresh.
 const CHAT_KEY = "lbtf.chat";
 
 function loadChat(): { messages: ChatMessage[]; mode: ChatAnswer["mode"] | null } {
@@ -25,13 +24,24 @@ function loadChat(): { messages: ChatMessage[]; mode: ChatAnswer["mode"] | null 
   return { messages: [], mode: null };
 }
 
-export function useArchiveChat() {
-  const [messages, setMessages] = useState<ChatMessage[]>(() => loadChat().messages);
+type ArchiveChat = {
+  messages: ChatMessage[];
+  busy: boolean;
+  mode: ChatAnswer["mode"] | null;
+  ask: (q: string) => Promise<void>;
+};
+const ChatCtx = createContext<ArchiveChat | null>(null);
+
+// Mounted in App above the routes, so the chat (and an answer still loading)
+// survives leaving the home page to open a cited story.
+export function ChatProvider({ children }: { children: ReactNode }) {
+  const [saved] = useState(loadChat);
+  const [messages, setMessages] = useState<ChatMessage[]>(saved.messages);
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState<ChatAnswer["mode"] | null>(() => loadChat().mode);
+  const [mode, setMode] = useState<ChatAnswer["mode"] | null>(saved.mode);
 
   useEffect(() => {
-    // A question still loading can't be answered once the page is left, so don't save it.
+    // A question still loading can't survive a refresh, so don't save it.
     const done = messages[messages.length - 1]?.pending ? messages.slice(0, -2) : messages;
     try { sessionStorage.setItem(CHAT_KEY, JSON.stringify({ messages: done, mode })); } catch { /* ignore */ }
   }, [messages, mode]);
@@ -52,7 +62,13 @@ export function useArchiveChat() {
       setBusy(false);
     }
   };
-  return { messages, busy, mode, ask };
+  return <ChatCtx.Provider value={{ messages, busy, mode, ask }}>{children}</ChatCtx.Provider>;
+}
+
+export function useArchiveChat() {
+  const chat = useContext(ChatCtx);
+  if (!chat) throw new Error("useArchiveChat must be used inside <ChatProvider>");
+  return chat;
 }
 
 export function CitationList({ citations, compact }: { citations: Citation[]; compact?: boolean }) {
