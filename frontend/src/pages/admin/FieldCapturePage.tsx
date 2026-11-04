@@ -133,7 +133,7 @@ export default function FieldCapturePage() {
                   </div>
                 </div>
                 <MapView
-                  className="dtc-map" era="1950" gridSize={34}
+                  className="dtc-map" era="1950"
                   pins={places.filter((p) => p.lat != null).map((p) => ({ id: p.key, lat: p.lat as number, lng: p.lng as number, active: p.key === activeKey, muted: p.key !== activeKey, label: p.key === activeKey ? "✓" : "•", title: p.name }))}
                   onTap={activeKey ? ({ lat, lng }) => setPlaces((ps) => ps.map((p) => (p.key === activeKey ? { ...p, lat, lng } : p))) : undefined}
                 >

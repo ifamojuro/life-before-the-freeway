@@ -280,8 +280,6 @@ export default function SubmissionDetailPage() {
                           <MapView
                             className="li-map"
                             era={a.era ?? "1950"}
-                            gridSize={26}
-                            showRoadNames={false}
                             pins={[
                               ...sub.places.filter((p) => p.lat != null).map((p) => ({ id: `p-${p.name}`, lat: p.lat as number, lng: p.lng as number, muted: true, title: p.name, label: "·" })),
                               ...(a.lat != null ? [{ id: "cur", lat: a.lat, lng: a.lng as number, active: true, label: "✓", title: a.name }] : []),
