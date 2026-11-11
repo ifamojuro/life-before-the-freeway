@@ -49,7 +49,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const ask = async (q: string) => {
     const question = q.trim();
     if (!question || busy) return;
-    const history = messages;
+    const history = messages.filter((m) => !m.error);
     setMessages((m) => [...m, { role: "user", content: question }, { role: "assistant", content: "", pending: true }]);
     setBusy(true);
     try {
@@ -57,7 +57,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       setMode(res.mode);
       setMessages((m) => [...m.slice(0, -1), { role: "assistant", content: res.answer, citations: res.citations }]);
     } catch (e) {
-      setMessages((m) => [...m.slice(0, -1), { role: "assistant", content: `Sorry — the archive didn't answer (${(e as Error).message}). Try again in a moment.` }]);
+      setMessages((m) => [...m.slice(0, -1), { role: "assistant", content: `Sorry — the archive didn't answer (${(e as Error).message}). Try again in a moment.`, error: true }]);
     } finally {
       setBusy(false);
     }

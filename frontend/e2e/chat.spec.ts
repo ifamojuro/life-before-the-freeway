@@ -30,3 +30,27 @@ test("a question the interviews don't cover says so instead of guessing", async 
   await expect(chat.getByText(/interviews don't cover that yet/)).toBeVisible();
   await expect(chat.getByText("Drawn from these stories")).toBeHidden();
 });
+
+test("the chat is still there after opening a cited story and coming back", async ({ page }) => {
+  const chat = page.getByRole("region", { name: "Ask the archive" });
+  await chat.getByRole("button", { name: "What was on 7th Street?" }).click();
+  await expect(chat.getByText("Drawn from these stories")).toBeVisible();
+
+  await chat.locator(".cite-pin").first().click();
+  await expect(page).toHaveURL(/\/story\//);
+  await page.getByRole("button", { name: "Close and return to map" }).click();
+
+  await expect(chat.getByText("What was on 7th Street?")).toBeVisible();
+  await expect(chat.getByText("Drawn from these stories")).toBeVisible();
+});
+
+test("the chat is still there after a refresh", async ({ page }) => {
+  const chat = page.getByRole("region", { name: "Ask the archive" });
+  await chat.getByRole("button", { name: "What was on 7th Street?" }).click();
+  await expect(chat.getByText("Drawn from these stories")).toBeVisible();
+
+  await page.reload();
+
+  await expect(chat.getByText("What was on 7th Street?")).toBeVisible();
+  await expect(chat.getByText("Drawn from these stories")).toBeVisible();
+});
