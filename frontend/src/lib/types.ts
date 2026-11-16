@@ -88,6 +88,7 @@ export interface ChatMessage {
   content: string;
   citations?: Citation[];
   pending?: boolean;
+  error?: boolean;
 }
 
 export interface DetectedPlace {
