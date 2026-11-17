@@ -87,8 +87,6 @@ export function HomeMobile({ era, setEra, pins, error }: ReturnType<typeof useHo
           era={era}
           pins={pinsToMap(pins, peekPin)}
           onPinClick={(id) => setPeekPin(peekPin === id ? null : Number(id))}
-          gridSize={38}
-          showRoadNames={false}
         />
         <EraSegmented value={era} onChange={setEra} />
         {error && <div className="err-note" style={{ position: "absolute", left: 10, right: 10, top: 64, zIndex: 4 }}>Couldn't load pins: {error}</div>}

@@ -24,8 +24,6 @@ export function TapMap({ flow, activeKey, className, instruction, era }: { flow:
       era={era ?? "1950"}
       className={className}
       pins={placePins(flow.places, activeKey)}
-      gridSize={34}
-      showRoadNames
       onTap={activeKey ? ({ lat, lng }) => flow.setPlaceCoords(activeKey, lat, lng) : undefined}
     >
       {instruction !== "" && (
