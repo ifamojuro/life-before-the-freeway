@@ -1,6 +1,5 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { MapToneFilter, MapToneTuner } from "./components/MapTone";
 import { ToastProvider } from "./components/Toast";
 import { DeviceProvider } from "./lib/device";
 import HomePage from "./pages/home/HomePage";
@@ -48,8 +47,6 @@ export default function App() {
             </Routes>
           </Suspense>
         </BrowserRouter>
-        <MapToneFilter />
-        <MapToneTuner />
       </ToastProvider>
     </DeviceProvider>
   );

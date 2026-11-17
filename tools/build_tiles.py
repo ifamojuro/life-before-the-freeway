@@ -74,8 +74,8 @@ def neatline(quad: str) -> dict:
 def tone_ramp(levels: int):
     """Gray (0-255) -> tone (0 = ink, 255 = paper), and a palette of `levels` steps from ink to paper.
 
-    Same black/white/gamma math as MapTone.tsx. Clamping at the black and white
-    points and using few steps drops scan noise, which keeps the PNGs small.
+    Clamping at the black and white points and using few steps drops scan
+    noise, which keeps the PNGs small.
     """
     hexrgb = lambda h: np.array([int(h[i:i + 2], 16) for i in (1, 3, 5)], float)
     ink, paper = hexrgb(TONE["ink"]), hexrgb(TONE["paper"])

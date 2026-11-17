@@ -171,5 +171,4 @@ gray maps to ink → paper with the black point, white point and gamma in
 `frontend/src/lib/mapTone.json`. Tiles are 16-step palette PNGs, about
 50 MB and 3,500 tiles per era.
 
-To change the colors: tune with `?tune` on any map page, paste the copied
-settings into `mapTone.json`, and re-run the builder.
+To change the colors: edit `mapTone.json` and re-run the builder.
