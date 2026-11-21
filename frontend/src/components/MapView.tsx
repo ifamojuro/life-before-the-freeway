@@ -137,15 +137,18 @@ export function MapView({
         className="map-plane"
         style={{ width: plane.w, height: plane.h, left: (box.w - plane.w) / 2 + pan.x, top: (box.h - plane.h) / 2 + pan.y }}
       >
-        {showPhoto && (
+        {/* One <img> per era, stacked, so switching eras crossfades instead of swapping src. */}
+        {showPhoto && Object.entries(BASEMAPS).map(([key, b]) => (
           <img
-            className="map-photo"
-            src={BASEMAPS[era].url}
-            alt={`Historical map of West Oakland, ${era} era (${BASEMAPS[era].credit})`}
+            key={key}
+            className={cx("map-photo", key === era && "active")}
+            src={b.url}
+            alt={key === era ? `Historical map of West Oakland, ${era} era (${b.credit})` : ""}
+            aria-hidden={key !== era}
             draggable={false}
             onError={() => setPhotoOk(false)}
           />
-        )}
+        ))}
         {!showPhoto && (
           <>
             <div className="map-grid" style={{ backgroundSize: `${gridSize}px ${gridSize}px` }} />
