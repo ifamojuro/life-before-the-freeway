@@ -1,0 +1,56 @@
+name: Bug Report
+description: Report an issue
+labels: ["bug"]
+body:
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: "e.g. iPhone, iOS 18, Chrome; localhost build"
+    validations:
+      required: true
+  - type: input
+    id: prerequisite
+    attributes:
+      label: Prerequisite
+      placeholder: "e.g. Signed in; homepage open"
+    validations:
+      required: false
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      placeholder: Briefly describe the bug.
+    validations:
+      required: false
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Describe what you observed. 
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: Describe what should happen.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Add context, source links, screenshots, or video here.
+    validations:
+      required: false
