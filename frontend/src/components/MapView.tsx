@@ -4,8 +4,7 @@
  * Each era's historical map (two-tone tiles built from whole USGS Historical
  * Topographic Map sheets — see tools/build_tiles.py) is its own tile layer, and
  * all three are loaded at once and stacked; switching eras only changes their
- * opacity. With ?tune, the layers use grayscale tiles colored live by the
- * MapTone filter instead.
+ * opacity.
  * Pins are Leaflet markers placed at their real lat/lng. Optional
  * tap-to-place mode is used by the contributor + moderation flows.
  */
@@ -41,7 +40,6 @@ interface Props {
 
 const START = L.latLngBounds([MAP_BOUNDS.south, MAP_BOUNDS.west], [MAP_BOUNDS.north, MAP_BOUNDS.east]);
 const COVERAGE = L.latLngBounds([MAP_COVERAGE.south, MAP_COVERAGE.west], [MAP_COVERAGE.north, MAP_COVERAGE.east]);
-const TUNING = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("tune");
 const BLANK = "data:image/gif;base64,R0lGODlhAQABAAAAACw="; // tiles that are all paper aren't built
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -77,9 +75,8 @@ export function MapView({ era = "1965", pins = [], onPinClick, onTap, className,
     fitMinZoom();
     map.fitBounds(START);
     map.on("resize", fitMinZoom);
-    const base = TUNING ? "/tiles-gray" : TILES_URL;
     for (const key of Object.keys(ERA_MAPS)) {
-      eraLayers.current[key] = L.tileLayer(`${base}/${key}/{z}/{x}/{y}.png`, {
+      eraLayers.current[key] = L.tileLayer(`${TILES_URL}/${key}/{z}/{x}/{y}.png`, {
         bounds: COVERAGE, minNativeZoom: MAP_COVERAGE.minZoom, maxNativeZoom: MAP_COVERAGE.maxNativeZoom, opacity: 0, errorTileUrl: BLANK, keepBuffer: 4,
       }).addTo(map);
     }
@@ -110,7 +107,7 @@ export function MapView({ era = "1965", pins = [], onPinClick, onTap, className,
 
   const credit = ERA_MAPS[era]?.credit;
   return (
-    <div className={cx("map-surface", onTap && "tappable", TUNING && "tuning", className)}>
+    <div className={cx("map-surface", onTap && "tappable", className)}>
       {/* Positioned inline: Leaflet forces position: relative (and so zero height) if it starts before the CSS has applied. */}
       <div ref={elRef} className="map-leaflet" style={{ position: "absolute", inset: 0 }} role={onTap ? "button" : undefined} aria-label={onTap ? "Tap the map to place a pin" : "Map of West Oakland"} />
       {children}
